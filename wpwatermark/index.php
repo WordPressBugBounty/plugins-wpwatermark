@@ -1,11 +1,11 @@
 <?php
 /**
  * Plugin Name: WordPress轻水印插件
- * Plugin URI: https://www.lezaiyun.com/wpwatermark.html
+ * Plugin URI: https://www.laojiang.me/5993.html
  * Description: 全网首个实现WordPress固定九宫格、随机位置、满铺水印的插件之一，方便每一个站长实现不同水印效果，加强图片防盗能力。公众号：老蒋朋友圈
  * Author: 老蒋和他的小伙伴
- * Version: 4.2
- * Author URI: https://www.lezaiyun.com
+ * Version: 4.3
+ * Author URI: https://www.laojiang.me
  */
 require_once 'WaterMarkFunctions.php';
 

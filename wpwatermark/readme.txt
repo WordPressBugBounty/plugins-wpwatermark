@@ -1,10 +1,10 @@
 === WPWaterMark 轻水印插件 ===
 Contributors: laobuluo
-Donate link: https://www.lezaiyun.com/donate/
+Donate link: https://www.laojiang.me/donate/
 Tags:老部落,水印插件,wordpress水印插件,WPWaterMark
 Requires at least: 4.6.0
-Tested up to: 6.5.3
-Stable tag: 4.2
+Tested up to: 6.7.2
+Stable tag: 4.3
 Requires PHP: 5.6
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -15,7 +15,7 @@ WPWaterMark，轻水印插件，全网首个实现WordPress固定九宫格、随
 
 <strong>基于WordPress程序，我们可以选择固定九宫格水印位置、随机九宫格位置，以及满铺水印，三种方式选择防止图片被盗，加强文章版权。公众号: <font color="red">老蒋朋友圈</font></strong>
 
-<strong>主要功能：</strong>
+## 主要功能：
 
 * 1、基于WordPress程序且免费提供给用户使用，加强图片水印功能，防止文章和图片被盗，至少保留水印，加强防盗能力；
 * 2、我们可选择九宫格、随机九宫格、满铺水印三种效果，至少是目前全网少有的插件之一；
@@ -23,9 +23,13 @@ WPWaterMark，轻水印插件，全网首个实现WordPress固定九宫格、随
 * 4、插件更多详细介绍和安装：<a href="https://www.laobuluo.com/2770.html" target="_blank" >https://www.laobuluo.com/2770.html</a>
 
 
-<strong>支持网站/博主：</strong>
-* 1. 老蒋部落 <a href="https://www.itbulu.com" target="_blank" >https://www.itbulu.com</a>
-* 2. 老部落 <a href="https://www.laobuluo.com" target="_blank" >https://www.laobuluo.com</a>
+## 网站支持
+
+* [老蒋玩运营](https://www.laojiang.me/ "老蒋玩运营")
+
+* [乐在云](https://www.lezaiyun.com/ "乐在云工作室")
+
+* 欢迎加入插件和站长微信公众号：老蒋朋友圈（公众号）
 
 == Installation ==
 
