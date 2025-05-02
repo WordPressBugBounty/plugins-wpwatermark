@@ -1,107 +1,284 @@
 <?php
 /**
- * Plugin Name: WordPress轻水印插件
+ * Plugin Name: WPWaterMark
  * Plugin URI: https://www.laojiang.me/5993.html
- * Description: 全网首个实现WordPress固定九宫格、随机位置、满铺水印的插件之一，方便每一个站长实现不同水印效果，加强图片防盗能力。公众号：老蒋朋友圈
- * Author: 老蒋和他的小伙伴
- * Version: 4.3
+ * Description: WordPress轻水印插件，支持文字水印和图片水印，支持批量添加水印，支持自定义水印位置、大小、颜色、透明度等。
+ * Version: 5.0.0
+ * Requires at least: 5.0
+ * Requires PHP: 7.4
+ * Author: 老蒋和他的伙伴们
  * Author URI: https://www.laojiang.me
+ * License: GPL v2 or later
+ * License URI: http://www.gnu.org/licenses/gpl-2.0.html
+ * Text Domain: wpwatermark
+ *
+ * @package WPWaterMark
+ * @version 4.2.0
  */
-require_once 'WaterMarkFunctions.php';
 
-
-define('WPWaterMark_BASEFOLDER', plugin_basename(dirname(__FILE__)));
-define('WPWaterMark_INDEXFILE', WPWaterMark_BASEFOLDER.'/index.php');
-define('WPWaterMark_VERSION', 3.2);
-register_activation_hook( __FILE__, 'wpwatermark_set_options' );
-add_filter( 'wp_handle_upload', 'wp_handle_upload_wpwatermark' );
-add_action( 'admin_menu', 'wpwatermark_add_setting_page' );
-add_filter( 'plugin_action_links', 'wpwatermark_plugin_action_links', 10, 2 );
-add_action( 'admin_enqueue_scripts', 'wpwatermark_admin_enqueue_scripts' );
-function wpwatermark_set_options() {
-	$options = array(
-		'version' => WPWaterMark_VERSION,
-		'watermark_type' => "text_watermark",
-		'watermark_mark_image' => '',
-		'text_content' => 'WPWaterMark',
-		'text_font' => "simhei.ttf",
-		'text_angle' => '0',
-		'text_size' => "18",
-		'text_color' => "#790000",
-		'watermark_position' => "6",
-		'watermark_margin' => '80',
-		'watermark_diaphaneity' => '100',
-		'watermark_spacing' => '30',
-		'watermark_min_width' => '250',
-		'watermark_min_height' => '250',
-	);
-	$wpwatermark_options = get_option('wpwatermark_options');
-	if(!$wpwatermark_options){
-		add_option('wpwatermark_options', $options, '', 'yes');
-	};
-
+// 防止直接访问
+if (!defined('ABSPATH')) {
+    exit;
 }
 
-function wp_handle_upload_wpwatermark( $upload ) {
-	$mime_types       = get_allowed_mime_types();
-	$image_mime_types = array(
-		$mime_types['jpg|jpeg|jpe'],
-		$mime_types['png'],
-	);
-
-	if ( in_array( $upload['type'], $image_mime_types ) ) {
-		$wpwatermark_options = get_option('wpwatermark_options');
-		list($width, $height, $type, $attr) = getimagesize($upload['file']);
-		if ($width < (int) $wpwatermark_options['watermark_min_width'] || $height < (int) $wpwatermark_options['watermark_min_height'] ) {
-			return $upload;
-		}
-		switch ($wpwatermark_options['watermark_type']) {
-			case "text_watermark":
-				wpWaterMarkCreateWordsWatermark(
-					$upload['file'],
-					$upload['file'],
-					$wpwatermark_options['text_content'],
-					$wpwatermark_options['watermark_spacing'],
-					$wpwatermark_options['text_size'],
-					$wpwatermark_options['text_color'],
-					$wpwatermark_options['watermark_position'],
-					$wpwatermark_options['text_font'],
-					$wpwatermark_options['text_angle'],
-					$wpwatermark_options['watermark_margin']
-				);
-				break;
-			case "image_watermark":
-				wpWaterMarkCreateImageWatermark(
-					$upload['file'],
-					$wpwatermark_options['watermark_mark_image'],
-					$upload['file'],
-					$wpwatermark_options['watermark_position'],
-					$wpwatermark_options['watermark_diaphaneity'],
-					$wpwatermark_options['watermark_spacing'],
-					$wpwatermark_options['watermark_margin']
-				);
-				break;
-		}
-	}
-
-	return $upload;
+// 检查PHP版本要求
+if (version_compare(PHP_VERSION, '7.4', '<')) {
+    add_action('admin_notices', function() {
+        echo '<div class="notice notice-error"><p>' . 
+             sprintf(__('WPWaterMark 插件需要 PHP %s 或更高版本。您当前的PHP版本是 %s，请升级您的PHP版本。', 'wpwatermark'), 
+                     '7.4', PHP_VERSION) . 
+             '</p></div>';
+    });
+    return;
 }
 
-function wpwatermark_add_setting_page() {
-	if (!function_exists('wpwatermark_setting_page')) {
-		require_once 'setting_page.php';
-	}
-	add_management_page('轻水印插件设置', '轻水印插件设置', 'manage_options', __FILE__, 'wpwatermark_setting_page');
+// 定义插件版本和路径常量
+define('WPWaterMark_VERSION', '4.2.0');
+define('WPWaterMark_PLUGIN_DIR', plugin_dir_path(__FILE__));
+define('WPWaterMark_PLUGIN_URL', plugin_dir_url(__FILE__));
+define('WPWaterMark_BASENAME', plugin_basename(__FILE__));
+
+// 加载必要的类
+require_once(WPWaterMark_PLUGIN_DIR . 'WaterMarkConfig.php');
+require_once(WPWaterMark_PLUGIN_DIR . 'WaterMarkHandler.php');
+require_once(WPWaterMark_PLUGIN_DIR . 'WaterMarkPerformance.php');
+
+class WPWaterMark {
+    private $config;
+    private $handler;
+    private $performance;
+    
+    /**
+     * 构造函数
+     */
+    public function __construct() {
+        // 初始化组件
+        $this->config = WaterMarkConfig::loadFromWordPress();
+        $this->handler = new WaterMarkHandler($this->config->getOptions());
+        $this->performance = new WaterMarkPerformance();
+        
+        // 注册钩子
+        add_action('admin_menu', array($this, 'addAdminMenu'));
+        add_action('admin_init', array($this, 'registerSettings'));
+        add_filter('wp_handle_upload', array($this, 'handleImageUpload'));
+        add_action('admin_enqueue_scripts', array($this, 'enqueueAdminScripts'));
+        
+        // 添加定期清理日志的计划任务
+        if (!wp_next_scheduled('wpwatermark_clean_logs')) {
+            wp_schedule_event(time(), 'daily', 'wpwatermark_clean_logs');
+        }
+        add_action('wpwatermark_clean_logs', array($this, 'cleanLogs'));
+    }
+    
+    /**
+     * 加载管理界面所需的脚本和样式
+     */
+    public function enqueueAdminScripts($hook) {
+        if ($hook != 'settings_page_wpwatermark') {
+            return;
+        }
+        
+        // 加载WordPress原生的媒体上传器
+        wp_enqueue_media();
+        
+        // 加载WordPress原生的颜色选择器
+        wp_enqueue_style('wp-color-picker');
+        wp_enqueue_script('wp-color-picker');
+        
+        // 加载自定义脚本和样式
+        wp_enqueue_style(
+            'wpwatermark-admin',
+            WPWaterMark_PLUGIN_URL . 'css/admin.css',
+            array(),
+            WPWaterMark_VERSION
+        );
+        
+        wp_enqueue_script(
+            'wpwatermark-admin',
+            WPWaterMark_PLUGIN_URL . 'js/admin.js',
+            array('jquery', 'wp-color-picker'),
+            WPWaterMark_VERSION,
+            true
+        );
+    }
+    
+    /**
+     * 添加管理菜单
+     */
+    public function addAdminMenu() {
+        add_options_page(
+            'WPWaterMark设置',
+            'WPWaterMark',
+            'manage_options',
+            'wpwatermark',
+            array($this, 'displaySettingsPage')
+        );
+    }
+    
+    /**
+     * 注册设置
+     */
+    public function registerSettings() {
+        register_setting('wpwatermark_options', 'wpwatermark_options', array($this, 'validateSettings'));
+    }
+    
+    /**
+     * 验证设置
+     */
+    public function validateSettings($input) {
+        $config = new WaterMarkConfig($input);
+        return $config->getOptions();
+    }
+    
+    /**
+     * 处理图片上传
+     */
+    public function handleImageUpload($file) {
+        // 检查是否为图片
+        if (strpos($file['type'], 'image') === false) {
+            return $file;
+        }
+        
+        // 获取图片信息
+        $image_size = getimagesize($file['file']);
+        if (!$image_size) {
+            return $file;
+        }
+        
+        // 检查图片尺寸是否满足要求
+        if ($image_size[0] < $this->config->getOption('watermark_min_width') || 
+            $image_size[1] < $this->config->getOption('watermark_min_height')) {
+            return $file;
+        }
+        
+        // 开始性能监控
+        $this->performance->startMonitoring();
+        
+        try {
+            // 添加水印
+            if ($this->config->getOption('watermark_type') === 'text_watermark') {
+                $this->handler->createTextWatermark(
+                    $file['file'],
+                    $file['file'],
+                    $this->config->getOption('text_content')
+                );
+            } else {
+                $this->handler->createImageWatermark(
+                    $file['file'],
+                    $this->config->getOption('watermark_mark_image'),
+                    $file['file']
+                );
+            }
+            
+            // 记录性能数据
+            $this->performance->endMonitoring('image_upload', [
+                'file_size' => filesize($file['file']),
+                'image_dimensions' => $image_size[0] . 'x' . $image_size[1]
+            ]);
+            
+        } catch (Exception $e) {
+            error_log('WPWaterMark Error: ' . $e->getMessage());
+        }
+        
+        return $file;
+    }
+    
+    /**
+     * 显示设置页面
+     */
+    public function displaySettingsPage() {
+        if (!current_user_can('manage_options')) {
+            wp_die(__('Insufficient privileges!', 'wpwatermark'));
+        }
+        
+        // 确保选项存在
+        $wpwatermark_options = get_option('wpwatermark_options');
+        if (!is_array($wpwatermark_options)) {
+            $config = new WaterMarkConfig();
+            $wpwatermark_options = $config->getOptions();
+            update_option('wpwatermark_options', $wpwatermark_options);
+        }
+        
+        // 加载设置页面模板
+        require_once(WPWaterMark_PLUGIN_DIR . 'setting_page.php');
+        wpwatermark_setting_page();
+    }
+    
+    /**
+     * 清理日志
+     */
+    public function cleanLogs() {
+        $this->performance->cleanOldLogs(30); // 保留30天的日志
+    }
+    
+    /**
+     * 插件激活时的处理
+     */
+    public static function activate() {
+        // 创建必要的目录
+        $dirs = array('cache', 'logs');
+        foreach ($dirs as $dir) {
+            $path = WPWaterMark_PLUGIN_DIR . $dir;
+            if (!file_exists($path)) {
+                wp_mkdir_p($path);
+            }
+        }
+        
+        // 设置默认选项
+        if (!get_option('wpwatermark_options')) {
+            $config = new WaterMarkConfig();
+            update_option('wpwatermark_options', $config->getOptions());
+        }
+    }
+    
+    /**
+     * 插件停用时的处理
+     */
+    public static function deactivate() {
+        wp_clear_scheduled_hook('wpwatermark_clean_logs');
+    }
+    
+    /**
+     * 插件卸载时的处理
+     */
+    public static function uninstall() {
+        // 清理选项
+        delete_option('wpwatermark_options');
+        
+        // 清理文件
+        $dirs = array('cache', 'logs');
+        foreach ($dirs as $dir) {
+            $path = WPWaterMark_PLUGIN_DIR . $dir;
+            if (file_exists($path)) {
+                self::removeDirectory($path);
+            }
+        }
+    }
+    
+    /**
+     * 递归删除目录
+     */
+    private static function removeDirectory($dir) {
+        if (is_dir($dir)) {
+            $objects = scandir($dir);
+            foreach ($objects as $object) {
+                if ($object != "." && $object != "..") {
+                    if (is_dir($dir . "/" . $object)) {
+                        self::removeDirectory($dir . "/" . $object);
+                    } else {
+                        unlink($dir . "/" . $object);
+                    }
+                }
+            }
+            rmdir($dir);
+        }
+    }
 }
 
-function wpwatermark_plugin_action_links($links, $file) {
-	if ($file == plugin_basename(dirname(__FILE__) . '/index.php')) {
-		$links[] = '<a href="admin.php?page=' . WPWaterMark_BASEFOLDER . '/index.php">设置</a>';
-	}
-	return $links;
-}
+// 注册激活、停用和卸载钩子
+register_activation_hook(__FILE__, array('WPWaterMark', 'activate'));
+register_deactivation_hook(__FILE__, array('WPWaterMark', 'deactivate'));
+register_uninstall_hook(__FILE__, array('WPWaterMark', 'uninstall'));
 
-function wpwatermark_admin_enqueue_scripts() {
-	wp_register_script( 'jqueryColorPicker', plugins_url( 'js/jquery.colorpicker.js', __FILE__ ), array('jquery') );
-	wp_enqueue_script( 'jqueryColorPicker' );
-}
+// 初始化插件
+$wpwatermark = new WPWaterMark();

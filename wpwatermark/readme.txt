@@ -3,24 +3,24 @@ Contributors: laobuluo
 Donate link: https://www.laojiang.me/donate/
 Tags:老部落,水印插件,wordpress水印插件,WPWaterMark
 Requires at least: 4.6.0
-Tested up to: 6.7.2
-Stable tag: 4.3
-Requires PHP: 5.6
+Tested up to: 6.8.1
+Stable tag: 5.0.0
+Requires PHP: 7.4
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-WPWaterMark，轻水印插件，全网首个实现WordPress固定九宫格、随机位置、满铺水印的插件之一，方便每一个站长实现不同水印效果，加强图片防盗能力。
+WPWaterMark，轻水印插件，方便每一个站长实现不同水印效果，加强图片防盗能力。
 
 == Description ==
 
-<strong>基于WordPress程序，我们可以选择固定九宫格水印位置、随机九宫格位置，以及满铺水印，三种方式选择防止图片被盗，加强文章版权。公众号: <font color="red">老蒋朋友圈</font></strong>
+基于WordPress程序，我们可以选择固定九宫格水印位置、随机九宫格位置，以及满铺水印，三种方式选择防止图片被盗，加强文章版权。公众号: <font color="red">老蒋朋友圈</font>
 
 ## 主要功能：
 
 * 1、基于WordPress程序且免费提供给用户使用，加强图片水印功能，防止文章和图片被盗，至少保留水印，加强防盗能力；
 * 2、我们可选择九宫格、随机九宫格、满铺水印三种效果，至少是目前全网少有的插件之一；
 * 3、轻水印插件支持设置文字、图片水印，可以设置旋转角度和透明度等常规功能。
-* 4、插件更多详细介绍和安装：<a href="https://www.laobuluo.com/2770.html" target="_blank" >https://www.laobuluo.com/2770.html</a>
+* 4、插件更多详细介绍和安装：<a href="https://www.laojiang.me/5993.html" target="_blank" >https://www.laojiang.me/5993.html</a>
 
 
 ## 网站支持
@@ -49,6 +49,12 @@ WPWaterMark，轻水印插件，全网首个实现WordPress固定九宫格、随
 2. screenshot-2.png
 
 == Changelog ==
+
+= 5.0.0 =
+* 重构水印插件框架
+* 去除Layui前端框架，减少插件体积
+* 提高水印位置的体验选择和水印图片的演示
+* 加强水印的验证逻辑
 
 = 4.2 =
 * 兼容最新WP6.2测试
