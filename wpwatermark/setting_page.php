@@ -41,9 +41,8 @@ function wpwatermark_setting_page() {
 		$wpwatermark_options['text_color'] = sanitize_hex_color($_POST['text_color'] ?? '#790000');
 		$wpwatermark_options['watermark_mark_image'] = esc_url_raw($_POST['watermark_mark_image'] ?? '');
 		$wpwatermark_options['watermark_position'] = sanitize_text_field($_POST['watermark_position'] ?? 'bottom-right');
-		$wpwatermark_options['watermark_margin'] = absint($_POST['watermark_margin'] ?? 80);
+		$wpwatermark_options['watermark_margin'] = absint($_POST['watermark_margin'] ?? 50);
 		$wpwatermark_options['watermark_diaphaneity'] = absint($_POST['watermark_diaphaneity'] ?? 100);
-		$wpwatermark_options['watermark_spacing'] = absint($_POST['watermark_spacing'] ?? 30);
 		$wpwatermark_options['watermark_min_width'] = absint($_POST['watermark_min_width'] ?? 300);
 		$wpwatermark_options['watermark_min_height'] = absint($_POST['watermark_min_height'] ?? 300);
 		
@@ -216,14 +215,6 @@ function wpwatermark_setting_page() {
 					<td>
 						<input type="number" name="watermark_diaphaneity" value="<?php echo esc_attr($wpwatermark_options['watermark_diaphaneity']); ?>" class="small-text" min="0" max="100">
 						<p class="description">0-100之间，100为完全不透明</p>
-					</td>
-				</tr>
-				
-				<tr>
-					<th scope="row">水印间距</th>
-					<td>
-						<input type="number" name="watermark_spacing" value="<?php echo esc_attr($wpwatermark_options['watermark_spacing']); ?>" class="small-text" min="0">
-						<p class="description">多个水印之间的间距（像素）</p>
 					</td>
 				</tr>
 				

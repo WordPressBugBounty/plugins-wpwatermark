@@ -4,7 +4,7 @@ Donate link: https://www.laojiang.me/donate/
 Tags:老部落,水印插件,wordpress水印插件,WPWaterMark
 Requires at least: 4.6.0
 Tested up to: 6.8.1
-Stable tag: 5.0.0
+Stable tag: 5.0.1
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -49,6 +49,12 @@ WPWaterMark，轻水印插件，方便每一个站长实现不同水印效果，
 2. screenshot-2.png
 
 == Changelog ==
+
+= 5.0.1 =
+* 修改了 calculatePosition 方法中的位置计算逻辑，确保水印不会超出图片边缘
+* 特别是修复了底部位置的计算，现在会考虑水印的高度，确保水印不会超出图片边缘
+* 移除了水印间距的设置界面，从配置验证中移除了相关代码
+* 默认保持50px的边距，移除了未使用的水印间距选项
 
 = 5.0.0 =
 * 重构水印插件框架

@@ -371,20 +371,20 @@ class WaterMarkHandler {
             case 'bottom-left':
                 return [
                     'x' => $margin,
-                    'y' => $img_height - $margin
+                    'y' => $img_height - $margin - $mark_height
                 ];
             
             case 'bottom-center':
                 return [
                     'x' => intval(($img_width - $mark_width) / 2),
-                    'y' => $img_height - $margin
+                    'y' => $img_height - $margin - $mark_height
                 ];
             
             case 'bottom-right':
             default:
                 return [
                     'x' => $img_width - $mark_width - $margin,
-                    'y' => $img_height - $margin
+                    'y' => $img_height - $margin - $mark_height
                 ];
         }
     }
