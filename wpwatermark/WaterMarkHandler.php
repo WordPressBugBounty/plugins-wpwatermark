@@ -144,7 +144,7 @@ class WaterMarkHandler {
      * @param array $options
      * @return bool
      */
-    public function createImageWatermark(string $img_url, string $watermark_url, string $new_img_url, array $options = []): bool {
+    public function createImageWatermark($img_url, $watermark_url, $new_img_url, $options = []) {
         try {
             // Generate cache key
             $cache_key = $this->generateCacheKey($img_url, array_merge($this->options, $options));
@@ -194,23 +194,81 @@ class WaterMarkHandler {
                 $watermark_size[0],
                 $watermark_size[1]
             );
+
+            // 创建临时图像用于处理
+            $temp = imagecreatetruecolor($img_size[0], $img_size[1]);
             
-            // Set transparency
-            $opacity = ($options['watermark_diaphaneity'] ?? $this->options['watermark_diaphaneity']) / 100;
-            imagealphablending($watermark, true);
-            imagesavealpha($watermark, true);
+            // 设置临时图像的透明度支持
+            imagealphablending($temp, false);
+            imagesavealpha($temp, true);
             
-            // Apply watermark
-            $this->imagecopymerge_alpha($im, $watermark, $position['x'], $position['y'], 0, 0, 
-                                      $watermark_size[0], $watermark_size[1], $opacity * 100);
+            // 复制原图到临时图像
+            imagecopy($temp, $im, 0, 0, 0, 0, $img_size[0], $img_size[1]);
             
-            // Save image
-            $this->saveImage($im, $new_img_url, $img_size['mime']);
+            // 获取透明度设置
+            $opacity = ($options['watermark_diaphaneity'] ?? $this->options['watermark_diaphaneity']);
             
-            // Cache result
-            copy($new_img_url, $this->cache_dir . $cache_key . '.jpg');
+            // 如果是PNG水印，保持其原有透明度
+            if ($watermark_size['mime'] === 'image/png') {
+                // 创建水印临时图像
+                $watermark_temp = imagecreatetruecolor($watermark_size[0], $watermark_size[1]);
+                imagealphablending($watermark_temp, false);
+                imagesavealpha($watermark_temp, true);
+                
+                // 复制水印到临时图像
+                imagecopy($watermark_temp, $watermark, 0, 0, 0, 0, $watermark_size[0], $watermark_size[1]);
+                
+                // 应用用户设置的透明度
+                if ($opacity < 100) {
+                    // 逐像素调整透明度
+                    for ($x = 0; $x < $watermark_size[0]; $x++) {
+                        for ($y = 0; $y < $watermark_size[1]; $y++) {
+                            $color = imagecolorsforindex($watermark_temp, imagecolorat($watermark_temp, $x, $y));
+                            $alpha = 127 - ((127 - $color['alpha']) * $opacity / 100);
+                            $new_color = imagecolorallocatealpha(
+                                $watermark_temp,
+                                $color['red'],
+                                $color['green'],
+                                $color['blue'],
+                                intval($alpha)
+                            );
+                            imagesetpixel($watermark_temp, $x, $y, $new_color);
+                        }
+                    }
+                }
+                
+                // 合并水印到目标图像
+                imagealphablending($temp, true);
+                imagecopy($temp, $watermark_temp, $position['x'], $position['y'], 0, 0, $watermark_size[0], $watermark_size[1]);
+                imagedestroy($watermark_temp);
+            } else {
+                // 非PNG水印的处理
+                imagealphablending($temp, true);
+                $this->imagecopymerge_alpha(
+                    $temp, $watermark,
+                    $position['x'], $position['y'],
+                    0, 0,
+                    $watermark_size[0], $watermark_size[1],
+                    $opacity
+                );
+            }
             
-            // Clean up
+            // 保存最终图像
+            if ($img_size['mime'] === 'image/png') {
+                imagealphablending($temp, false);
+                imagesavealpha($temp, true);
+            }
+            $this->saveImage($temp, $new_img_url, $img_size['mime']);
+            
+            // 设置缓存文件扩展名
+            $cache_file = $this->cache_dir . $cache_key . 
+                         ($img_size['mime'] === 'image/png' ? '.png' : '.jpg');
+            
+            // 保存缓存
+            copy($new_img_url, $cache_file);
+            
+            // 清理资源
+            imagedestroy($temp);
             imagedestroy($im);
             imagedestroy($watermark);
             
@@ -237,7 +295,15 @@ class WaterMarkHandler {
         ];
         
         if (isset($create_functions[$mime_type])) {
-            return call_user_func($create_functions[$mime_type], $img_url);
+            $im = call_user_func($create_functions[$mime_type], $img_url);
+            
+            // 特别处理PNG图片的透明度
+            if ($mime_type === 'image/png') {
+                imagealphablending($im, false);
+                imagesavealpha($im, true);
+            }
+            
+            return $im;
         }
         
         return false;
@@ -252,17 +318,16 @@ class WaterMarkHandler {
      * @return bool
      */
     private function saveImage($im, string $filename, string $mime_type): bool {
-        $save_functions = [
-            'image/jpeg' => 'imagejpeg',
-            'image/png'  => 'imagepng',
-            'image/gif'  => 'imagegif'
-        ];
-        
-        if (isset($save_functions[$mime_type])) {
-            return call_user_func($save_functions[$mime_type], $im, $filename);
+        switch ($mime_type) {
+            case 'image/jpeg':
+                return imagejpeg($im, $filename, 95); // 95% quality for JPEG
+            case 'image/png':
+                return imagepng($im, $filename, 0); // 0-9, 0 for no compression to maintain quality
+            case 'image/gif':
+                return imagegif($im, $filename);
+            default:
+                return false;
         }
-        
-        return false;
     }
     
     /**
@@ -291,20 +356,74 @@ class WaterMarkHandler {
      * @param int $pct
      * @return void
      */
-    private function imagecopymerge_alpha($dst_im, $src_im, int $dst_x, int $dst_y, int $src_x, int $src_y, int $src_w, int $src_h, int $pct): void {
-        // Create a new transparent image
+    private function imagecopymerge_alpha($dst_im, $src_im, $dst_x, $dst_y, $src_x, $src_y, $src_w, $src_h, $pct) {
+        // 确保透明度在有效范围内
+        $pct = min(100, max(0, $pct));
+        
+        // 创建临时图像
         $cut = imagecreatetruecolor($src_w, $src_h);
+        
+        // 设置完全透明背景
         imagealphablending($cut, false);
         imagesavealpha($cut, true);
+        $transparent = imagecolorallocatealpha($cut, 0, 0, 0, 127);
+        imagefilledrectangle($cut, 0, 0, $src_w, $src_h, $transparent);
         
-        // Copy source image
+        // 复制目标区域到临时图像
         imagecopy($cut, $dst_im, 0, 0, intval($dst_x), intval($dst_y), $src_w, $src_h);
         
-        // Copy watermark with transparency
-        imagecopy($cut, $src_im, 0, 0, intval($src_x), intval($src_y), $src_w, $src_h);
-        imagecopymerge($dst_im, $cut, intval($dst_x), intval($dst_y), 0, 0, $src_w, $src_h, intval($pct));
+        // 启用混合模式
+        imagealphablending($cut, true);
         
+        // 应用水印到临时图像
+        $this->imagecopymerge_alpha_pixel($cut, $src_im, 0, 0, intval($src_x), intval($src_y), $src_w, $src_h, $pct);
+        
+        // 保持目标图像的透明度
+        imagealphablending($dst_im, true);
+        imagesavealpha($dst_im, true);
+        
+        // 将处理后的临时图像复制回目标图像
+        imagecopy($dst_im, $cut, intval($dst_x), intval($dst_y), 0, 0, $src_w, $src_h);
+        
+        // 清理
         imagedestroy($cut);
+    }
+    
+    /**
+     * 逐像素处理透明度
+     */
+    private function imagecopymerge_alpha_pixel($dst_im, $src_im, $dst_x, $dst_y, $src_x, $src_y, $src_w, $src_h, $pct) {
+        if ($pct == 0) return;
+        
+        // 逐像素处理
+        for ($y = 0; $y < $src_h; ++$y) {
+            for ($x = 0; $x < $src_w; ++$x) {
+                $src_color = imagecolorsforindex($src_im, imagecolorat($src_im, $src_x + $x, $src_y + $y));
+                $dst_color = imagecolorsforindex($dst_im, imagecolorat($dst_im, $dst_x + $x, $dst_y + $y));
+                
+                // 计算新的透明度
+                $src_alpha = 127 - ($src_color['alpha'] * $pct / 100);
+                $dst_alpha = 127 - $dst_color['alpha'];
+                $final_alpha = 127 - (($src_alpha + $dst_alpha) / 2);
+                
+                // 混合颜色
+                $final_red = ($src_color['red'] * $pct + $dst_color['red'] * (100 - $pct)) / 100;
+                $final_green = ($src_color['green'] * $pct + $dst_color['green'] * (100 - $pct)) / 100;
+                $final_blue = ($src_color['blue'] * $pct + $dst_color['blue'] * (100 - $pct)) / 100;
+                
+                // 创建新颜色
+                $final_color = imagecolorallocatealpha(
+                    $dst_im,
+                    intval($final_red),
+                    intval($final_green),
+                    intval($final_blue),
+                    intval($final_alpha)
+                );
+                
+                // 设置像素
+                imagesetpixel($dst_im, $dst_x + $x, $dst_y + $y, $final_color);
+            }
+        }
     }
     
     /**

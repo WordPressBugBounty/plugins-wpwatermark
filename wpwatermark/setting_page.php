@@ -3,7 +3,7 @@
  * 插件设置页面
  *
  * @package WPWaterMark
- * @version 5.0.0
+ * @version 5.0.2
  */
 // require_once('WaterMarkFunctions.php');
 
