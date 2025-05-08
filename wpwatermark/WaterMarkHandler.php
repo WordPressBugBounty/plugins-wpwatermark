@@ -437,7 +437,7 @@ class WaterMarkHandler {
      * @param int $mark_height
      * @return array{x: int, y: int}
      */
-    private function calculatePosition(string $position, int $img_width, int $img_height, string $text = '', int $mark_width = 0, int $mark_height = 0): array {
+    private function calculatePosition($position, $img_width, $img_height, $text = '', $mark_width = 0, $mark_height = 0) {
         $margin = intval($this->options['watermark_margin']);
         
         // For text watermark
@@ -449,61 +449,65 @@ class WaterMarkHandler {
             $mark_height = abs($text_box[1] - $text_box[5]);
         }
         
-        // Calculate position
+        // Calculate grid dimensions
+        $grid_width = $img_width / 3;
+        $grid_height = $img_height / 3;
+        
+        // Calculate position based on grid
         switch ($position) {
             case 'top-left':
                 return [
                     'x' => $margin,
-                    'y' => $margin + $mark_height
+                    'y' => $margin
                 ];
             
             case 'top-center':
                 return [
-                    'x' => intval(($img_width - $mark_width) / 2),
-                    'y' => $margin + $mark_height
+                    'x' => intval($grid_width + ($grid_width - $mark_width) / 2),
+                    'y' => $margin
                 ];
             
             case 'top-right':
                 return [
-                    'x' => $img_width - $mark_width - $margin,
-                    'y' => $margin + $mark_height
+                    'x' => intval($img_width - $mark_width - $margin),
+                    'y' => $margin
                 ];
             
             case 'middle-left':
                 return [
                     'x' => $margin,
-                    'y' => intval(($img_height + $mark_height) / 2)
+                    'y' => intval($grid_height + ($grid_height - $mark_height) / 2)
                 ];
             
             case 'middle-center':
                 return [
-                    'x' => intval(($img_width - $mark_width) / 2),
-                    'y' => intval(($img_height + $mark_height) / 2)
+                    'x' => intval($grid_width + ($grid_width - $mark_width) / 2),
+                    'y' => intval($grid_height + ($grid_height - $mark_height) / 2)
                 ];
             
             case 'middle-right':
                 return [
-                    'x' => $img_width - $mark_width - $margin,
-                    'y' => intval(($img_height + $mark_height) / 2)
+                    'x' => intval($img_width - $mark_width - $margin),
+                    'y' => intval($grid_height + ($grid_height - $mark_height) / 2)
                 ];
             
             case 'bottom-left':
                 return [
                     'x' => $margin,
-                    'y' => $img_height - $margin - $mark_height
+                    'y' => intval($img_height - $mark_height - $margin)
                 ];
             
             case 'bottom-center':
                 return [
-                    'x' => intval(($img_width - $mark_width) / 2),
-                    'y' => $img_height - $margin - $mark_height
+                    'x' => intval($grid_width + ($grid_width - $mark_width) / 2),
+                    'y' => intval($img_height - $mark_height - $margin)
                 ];
             
             case 'bottom-right':
             default:
                 return [
-                    'x' => $img_width - $mark_width - $margin,
-                    'y' => $img_height - $margin - $mark_height
+                    'x' => intval($img_width - $mark_width - $margin),
+                    'y' => intval($img_height - $mark_height - $margin)
                 ];
         }
     }
