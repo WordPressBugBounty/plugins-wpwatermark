@@ -7,6 +7,7 @@
 class WaterMarkConfig {
     // Default settings
     private static $defaults = [
+        'watermark_enabled' => '0',
         'watermark_type' => 'text_watermark',
         'text_content' => '',
         'text_font' => 'simhei.ttf',

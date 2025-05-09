@@ -3,7 +3,7 @@
  * 插件设置页面
  *
  * @package WPWaterMark
- * @version 5.0.2
+ * @version 5.1.1
  */
 // require_once('WaterMarkFunctions.php');
 
@@ -33,6 +33,7 @@ function wpwatermark_setting_page() {
 	// 处理表单提交
 	if (isset($_POST['submit']) && check_admin_referer('wpwatermark_settings')) {
 		// 更新选项
+		$wpwatermark_options['watermark_enabled'] = isset($_POST['watermark_enabled']) ? '1' : '0';
 		$wpwatermark_options['watermark_type'] = sanitize_text_field($_POST['watermark_type'] ?? 'text_watermark');
 		$wpwatermark_options['text_content'] = sanitize_text_field($_POST['text_content'] ?? '');
 		$wpwatermark_options['text_font'] = sanitize_text_field($_POST['text_font'] ?? 'simhei.ttf');
@@ -90,12 +91,25 @@ function wpwatermark_setting_page() {
 	// 输出设置页面HTML
 	?>
 	<div class="wrap wpwatermark-wrap">
-		<h1>WPWaterMark 设置</h1>
+		<h1>WPWaterMark 水印插件设置</h1>
 		<p>在这里，我们要对水印插件设置。<a href="https://www.laojiang.me/5993.html" target="_blank">插件介绍</a>（关注公众号：<span style="color: red;">老蒋朋友圈</span>）</p>
 		<form method="post" action="" class="wpwatermark-form">
 			<?php wp_nonce_field('wpwatermark_settings'); ?>
 			
 			<table class="form-table">
+				<tr>
+					<th scope="row">启用水印</th>
+					<td>
+						<fieldset>
+							<label>
+								<input type="checkbox" name="watermark_enabled" value="1" <?php checked($wpwatermark_options['watermark_enabled'], '1'); ?>>
+								启用水印功能
+							</label>
+							<p class="description">勾选此项后，水印功能才会生效</p>
+						</fieldset>
+					</td>
+				</tr>
+				
 				<tr>
 					<th scope="row">水印类型</th>
 					<td>

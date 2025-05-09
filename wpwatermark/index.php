@@ -3,7 +3,7 @@
  * Plugin Name: WPWaterMark
  * Plugin URI: https://www.laojiang.me/5993.html
  * Description: WordPress轻水印插件，支持文字水印和图片水印，支持批量添加水印，支持自定义水印位置、大小、颜色、透明度等。公众号：老蒋朋友圈
- * Version: 5.0.3
+ * Version: 5.1.1
  * Requires at least: 5.0
  * Requires PHP: 7.4
  * Author: 老蒋和他的伙伴们
@@ -133,6 +133,11 @@ class WPWaterMark {
     public function handleImageUpload($file) {
         // 检查是否为图片
         if (strpos($file['type'], 'image') === false) {
+            return $file;
+        }
+        
+        // 检查水印功能是否启用
+        if ($this->config->getOption('watermark_enabled') !== '1') {
             return $file;
         }
         
