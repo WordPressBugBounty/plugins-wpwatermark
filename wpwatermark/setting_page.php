@@ -3,7 +3,7 @@
  * 插件设置页面
  *
  * @package WPWaterMark
- * @version 5.1.1
+ * @version 5.1.2
  */
 // require_once('WaterMarkFunctions.php');
 
@@ -92,7 +92,7 @@ function wpwatermark_setting_page() {
 	?>
 	<div class="wrap wpwatermark-wrap">
 		<h1>WPWaterMark 水印插件设置</h1>
-		<p>在这里，我们要对水印插件设置。<a href="https://www.laojiang.me/5993.html" target="_blank">插件介绍</a>（关注公众号：<span style="color: red;">老蒋朋友圈</span>）</p>
+		<p>在这里，我们要对水印插件设置。<a href="https://www.lezaiyun.com/792.html" target="_blank">插件介绍</a>（关注公众号：<span style="color: red;">老蒋朋友圈</span>）</p>
 		<form method="post" action="" class="wpwatermark-form">
 			<?php wp_nonce_field('wpwatermark_settings'); ?>
 			
@@ -121,7 +121,7 @@ function wpwatermark_setting_page() {
 							<br>
 							<label>
 								<input type="radio" name="watermark_type" value="image_watermark" <?php checked($wpwatermark_options['watermark_type'], 'image_watermark'); ?>>
-								图片水印
+								图片水印（推荐）
 							</label>
 						</fieldset>
 					</td>

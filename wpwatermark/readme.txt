@@ -20,14 +20,14 @@ WPWaterMark，轻水印插件，方便每一个站长实现不同水印效果，
 * 1、基于WordPress程序且免费提供给用户使用，加强图片水印功能，防止文章和图片被盗，至少保留水印，加强防盗能力；
 * 2、我们可选择九宫格、随机九宫格、满铺水印三种效果，至少是目前全网少有的插件之一；
 * 3、轻水印插件支持设置文字、图片水印，可以设置旋转角度和透明度等常规功能。
-* 4、插件更多详细介绍和安装：<a href="https://www.laojiang.me/5993.html" target="_blank" >https://www.laojiang.me/5993.html</a>
+* 4、插件更多详细介绍和安装：<a href="https://www.lezaiyun.com/792.html" target="_blank" >https://www.lezaiyun.com/792.html</a>
 
 
 ## 网站支持
 
 * [老蒋玩运营](https://www.laojiang.me/ "老蒋玩运营")
 
-* [乐在云](https://www.lezaiyun.com/ "乐在云工作室")
+* [乐在云工作室](https://www.lezaiyun.com/ "乐在云工作室")
 
 * 欢迎加入插件和站长微信公众号：老蒋朋友圈（公众号）
 
@@ -49,6 +49,9 @@ WPWaterMark，轻水印插件，方便每一个站长实现不同水印效果，
 2. screenshot-2.png
 
 == Changelog ==
+
+= 5.1.2 =
+* 完善参考文档、默认采用钉钉进步体字体。
 
 = 5.1.1 =
 * 新增插件开关选项，便于用户不需要用的时候关闭且不影响设置
