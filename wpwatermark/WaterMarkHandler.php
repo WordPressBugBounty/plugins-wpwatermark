@@ -202,6 +202,12 @@ class WaterMarkHandler {
             imagealphablending($temp, false);
             imagesavealpha($temp, true);
             
+            // 如果原图是PNG，设置透明背景
+            if ($img_size['mime'] === 'image/png') {
+                $transparent = imagecolorallocatealpha($temp, 0, 0, 0, 127);
+                imagefilledrectangle($temp, 0, 0, $img_size[0], $img_size[1], $transparent);
+            }
+            
             // 复制原图到临时图像
             imagecopy($temp, $im, 0, 0, 0, 0, $img_size[0], $img_size[1]);
             
@@ -214,6 +220,10 @@ class WaterMarkHandler {
                 $watermark_temp = imagecreatetruecolor($watermark_size[0], $watermark_size[1]);
                 imagealphablending($watermark_temp, false);
                 imagesavealpha($watermark_temp, true);
+                
+                // 设置完全透明背景
+                $transparent = imagecolorallocatealpha($watermark_temp, 0, 0, 0, 127);
+                imagefilledrectangle($watermark_temp, 0, 0, $watermark_size[0], $watermark_size[1], $transparent);
                 
                 // 复制水印到临时图像
                 imagecopy($watermark_temp, $watermark, 0, 0, 0, 0, $watermark_size[0], $watermark_size[1]);
