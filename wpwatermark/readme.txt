@@ -1,10 +1,10 @@
 === WPWaterMark 轻水印插件 ===
 Contributors: laobuluo
-Donate link: https://www.laojiang.me/donate/
+Donate link: https://www.lezaiyun.com/donate/
 Tags:老部落,水印插件,wordpress水印插件,WPWaterMark
 Requires at least: 4.6.0
-Tested up to: 6.8.2
-Stable tag: 5.1.3
+Tested up to: 6.9
+Stable tag: 5.1.4
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -25,9 +25,9 @@ WPWaterMark，轻水印插件，方便每一个站长实现不同水印效果，
 
 ## 网站支持
 
-* [老蒋玩运营](https://www.laojiang.me/ "老蒋玩运营")
-
 * [乐在云工作室](https://www.lezaiyun.com/ "乐在云工作室")
+
+* [主机评价网](https://www.zhujipingjia.com/ "主机评价网")
 
 * 欢迎加入插件和站长微信公众号：老蒋朋友圈（公众号）
 
