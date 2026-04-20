@@ -51,13 +51,14 @@ class WaterMarkConfig {
         $this->options['watermark_min_width'] = $this->validateNumeric('watermark_min_width', 100, 9999);
         $this->options['watermark_min_height'] = $this->validateNumeric('watermark_min_height', 100, 9999);
         
-        // Validate watermark position
+        // Validate watermark position（九宫格固定位置 + random 随机一格）
         $valid_positions = [
+            'random',
             'top-left', 'top-center', 'top-right',
             'middle-left', 'middle-center', 'middle-right',
             'bottom-left', 'bottom-center', 'bottom-right'
         ];
-        if (!in_array($this->options['watermark_position'], $valid_positions)) {
+        if (!in_array($this->options['watermark_position'], $valid_positions, true)) {
             $this->options['watermark_position'] = self::$defaults['watermark_position'];
         }
         

@@ -1,3 +1,3 @@
-{"timestamp":"2025-09-28 12:43:41","operation":"image_upload","duration_ms":74.68,"memory_mb":0,"file_size":1016035,"image_dimensions":"780x325"}
-{"timestamp":"2025-09-28 12:44:23","operation":"image_upload","duration_ms":84.41,"memory_mb":0,"file_size":972276,"image_dimensions":"780x311"}
-{"timestamp":"2025-09-28 12:48:00","operation":"image_upload","duration_ms":109.94,"memory_mb":0,"file_size":1681875,"image_dimensions":"780x538"}
+{"timestamp":"2026-04-20 01:47:02","operation":"image_upload","duration_ms":10.91,"memory_mb":0,"file_size":145372,"image_dimensions":"480x300"}
+{"timestamp":"2026-04-20 01:47:13","operation":"image_upload","duration_ms":12.27,"memory_mb":0,"file_size":407912,"image_dimensions":"820x495"}
+{"timestamp":"2026-04-20 01:47:36","operation":"image_upload","duration_ms":17.82,"memory_mb":0,"file_size":546885,"image_dimensions":"820x664"}

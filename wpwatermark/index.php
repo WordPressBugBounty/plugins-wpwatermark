@@ -1,13 +1,13 @@
 <?php
 /**
  * Plugin Name: WPWaterMark
- * Plugin URI: https://www.lezaiyun.com/792.html
+ * Plugin URI: https://www.laojiang.me/5993.html
  * Description: WordPress轻水印插件，支持文字水印和图片水印，支持批量添加水印，支持自定义水印位置、大小、颜色、透明度等。公众号：老蒋朋友圈
- * Version: 5.1.4
+ * Version: 5.1.5
  * Requires at least: 5.0
  * Requires PHP: 7.4
  * Author: 老蒋和他的伙伴们
- * Author URI: https://www.lezaiyun.com
+ * Author URI: https://www.laojiang.me
  * License: GPL v2 or later
  * License URI: http://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: wpwatermark
@@ -30,7 +30,7 @@ if (version_compare(PHP_VERSION, '7.4', '<')) {
 }
 
 // 定义插件版本和路径常量
-define('WPWaterMark_VERSION', '5.1.2');
+define('WPWaterMark_VERSION', '5.1.5');
 define('WPWaterMark_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('WPWaterMark_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('WPWaterMark_BASENAME', plugin_basename(__FILE__));

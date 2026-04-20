@@ -1,10 +1,10 @@
 === WPWaterMark 轻水印插件 ===
 Contributors: laobuluo
-Donate link: https://www.lezaiyun.com/donate/
+Donate link: https://www.laojiang.me/contanct
 Tags:老部落,水印插件,wordpress水印插件,WPWaterMark
 Requires at least: 4.6.0
 Tested up to: 6.9
-Stable tag: 5.1.4
+Stable tag: 5.1.5
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -20,7 +20,7 @@ WPWaterMark，轻水印插件，方便每一个站长实现不同水印效果，
 * 1、基于WordPress程序且免费提供给用户使用，加强图片水印功能，防止文章和图片被盗，至少保留水印，加强防盗能力；
 * 2、我们可选择九宫格、随机九宫格、满铺水印三种效果，至少是目前全网少有的插件之一；
 * 3、轻水印插件支持设置文字、图片水印，可以设置旋转角度和透明度等常规功能。
-* 4、插件更多详细介绍和安装：<a href="https://www.lezaiyun.com/792.html" target="_blank" >https://www.lezaiyun.com/792.html</a>
+* 4、插件更多详细介绍和安装：<a href="https://www.laojiang.me/5993.html" target="_blank" >https://www.laojiang.me/5993.html</a>
 
 
 ## 网站支持
@@ -49,6 +49,15 @@ WPWaterMark，轻水印插件，方便每一个站长实现不同水印效果，
 2. screenshot-2.png
 
 == Changelog ==
+
+= 5.1.5 =
+* 新增「随机九宫格」：与固定九宫格二选一，每次上传时在九个格子中随机选取水印位置
+* 随机模式下不使用水印缓存，避免随机结果被缓存固定
+* 修复保存「随机九宫格」后设置页仍显示为「固定九宫格」的问题（前端同步与后端按单选项保存）
+
+= 5.1.4 =
+* 移除满铺水印功能和随机水印功能，保留九宫格水印
+* 重构代码结构更加优化轻便，去掉layui框架
 
 = 5.1.3 =
 * 修复透明PNG水印图片不透明的问题

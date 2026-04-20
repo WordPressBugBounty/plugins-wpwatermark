@@ -3,7 +3,7 @@
  * 插件设置页面
  *
  * @package WPWaterMark
- * @version 5.1.2
+ * @version 5.1.5
  */
 // require_once('WaterMarkFunctions.php');
 
@@ -41,7 +41,16 @@ function wpwatermark_setting_page() {
 		$wpwatermark_options['text_size'] = absint($_POST['text_size'] ?? 14);
 		$wpwatermark_options['text_color'] = sanitize_hex_color($_POST['text_color'] ?? '#790000');
 		$wpwatermark_options['watermark_mark_image'] = esc_url_raw($_POST['watermark_mark_image'] ?? '');
-		$wpwatermark_options['watermark_position'] = sanitize_text_field($_POST['watermark_position'] ?? 'bottom-right');
+		// 位置：优先根据单选项（与隐藏域双保险，避免仅依赖 JS 时未提交 random）
+		$position_mode = isset($_POST['wpwatermark_position_mode'])
+			? sanitize_text_field(wp_unslash($_POST['wpwatermark_position_mode']))
+			: 'fixed';
+		if ($position_mode === 'random') {
+			$wpwatermark_options['watermark_position'] = 'random';
+		} else {
+			$pos = isset($_POST['watermark_position']) ? sanitize_text_field(wp_unslash($_POST['watermark_position'])) : 'bottom-right';
+			$wpwatermark_options['watermark_position'] = ($pos === 'random') ? 'bottom-right' : $pos;
+		}
 		$wpwatermark_options['watermark_margin'] = absint($_POST['watermark_margin'] ?? 50);
 		$wpwatermark_options['watermark_diaphaneity'] = absint($_POST['watermark_diaphaneity'] ?? 100);
 		$wpwatermark_options['watermark_min_width'] = absint($_POST['watermark_min_width'] ?? 300);
@@ -92,7 +101,7 @@ function wpwatermark_setting_page() {
 	?>
 	<div class="wrap wpwatermark-wrap">
 		<h1>WPWaterMark 水印插件设置</h1>
-		<p>在这里，我们要对水印插件设置。<a href="https://www.lezaiyun.com/792.html" target="_blank">插件介绍</a>（关注公众号：<span style="color: red;">老蒋朋友圈</span>）</p>
+		<p>在这里，我们要对水印插件设置。<a href="https://www.laojiang.me/5993.html" target="_blank">插件介绍</a>（关注公众号：<span style="color: red;">老蒋朋友圈</span>）</p>
 		<form method="post" action="" class="wpwatermark-form">
 			<?php wp_nonce_field('wpwatermark_settings'); ?>
 			
@@ -191,7 +200,20 @@ function wpwatermark_setting_page() {
 				<tr>
 					<th scope="row">水印位置</th>
 					<td>
-						<div class="wpwatermark-position-selector">
+						<?php
+						$position_is_random = isset($wpwatermark_options['watermark_position']) && $wpwatermark_options['watermark_position'] === 'random';
+						?>
+						<fieldset class="wpwatermark-position-mode" style="margin-bottom:12px;">
+							<label style="display:inline-block;margin-right:16px;">
+								<input type="radio" name="wpwatermark_position_mode" value="fixed" <?php checked(!$position_is_random); ?>>
+								固定九宫格
+							</label>
+							<label style="display:inline-block;">
+								<input type="radio" name="wpwatermark_position_mode" value="random" <?php checked($position_is_random); ?>>
+								随机九宫格（每次上传在九宫格中随机一格）
+							</label>
+						</fieldset>
+						<div class="wpwatermark-position-selector"<?php echo $position_is_random ? ' style="opacity:0.5;"' : ''; ?>>
 							<?php
 							$positions = array(
 								'top-left' => '左上',
@@ -206,13 +228,14 @@ function wpwatermark_setting_page() {
 							);
 							
 							foreach ($positions as $value => $label) {
-								echo '<button type="button" data-position="' . esc_attr($value) . '" ' . 
-									 ($wpwatermark_options['watermark_position'] === $value ? 'class="active"' : '') . '>' . 
-									 esc_html($label) . '</button>';
+								echo '<button type="button" data-position="' . esc_attr($value) . '" ' .
+									(!$position_is_random && isset($wpwatermark_options['watermark_position']) && $wpwatermark_options['watermark_position'] === $value ? 'class="active"' : '') . '>' .
+									esc_html($label) . '</button>';
 							}
 							?>
 						</div>
 						<input type="hidden" name="watermark_position" id="watermark_position" value="<?php echo esc_attr($wpwatermark_options['watermark_position']); ?>">
+						<p class="description">固定九宫格：水印始终在所选格子内；随机九宫格：每张图处理时从九个格子中随机选一个（与固定模式二选一）。</p>
 					</td>
 				</tr>
 				

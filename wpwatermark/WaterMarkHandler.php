@@ -40,6 +40,43 @@ class WaterMarkHandler {
     private function generateCacheKey(string $img_url, array $options): string {
         return md5($img_url . serialize($options));
     }
+
+    /**
+     * 九宫格位置键名列表（与 calculatePosition 的 case 一致）
+     *
+     * @return string[]
+     */
+    private static function getGridPositionKeys(): array {
+        return [
+            'top-left', 'top-center', 'top-right',
+            'middle-left', 'middle-center', 'middle-right',
+            'bottom-left', 'bottom-center', 'bottom-right',
+        ];
+    }
+
+    /**
+     * 若设置为 random，则每次处理在九宫格中随机选一格
+     */
+    private function resolveGridPosition(string $position): string {
+        if ($position === 'random') {
+            $grid = self::getGridPositionKeys();
+            return $grid[wp_rand(0, count($grid) - 1)];
+        }
+        return $position;
+    }
+
+    /**
+     * 从本次调用的 options 与默认配置得到原始位置字符串（可能为 random）
+     */
+    private function getRawWatermarkPosition(array $options): string {
+        if (isset($options['watermark_position']) && $options['watermark_position'] !== '') {
+            return (string) $options['watermark_position'];
+        }
+        if (isset($options['position']) && $options['position'] !== '') {
+            return (string) $options['position'];
+        }
+        return (string) $this->options['watermark_position'];
+    }
     
     /**
      * Check if cached version exists
@@ -66,14 +103,17 @@ class WaterMarkHandler {
      */
     public function createTextWatermark(string $img_url, string $new_img_url, string $text, array $options = []): bool {
         try {
-            // Generate cache key
-            $cache_key = $this->generateCacheKey($img_url, array_merge($this->options, $options));
-            
-            // Check cache
-            $cached_file = $this->getCachedImage($cache_key);
-            if ($cached_file) {
-                copy($cached_file, $new_img_url);
-                return true;
+            $merged = array_merge($this->options, $options);
+            $raw_position = $this->getRawWatermarkPosition($options);
+            $use_cache = ($raw_position !== 'random');
+
+            if ($use_cache) {
+                $cache_key = $this->generateCacheKey($img_url, $merged);
+                $cached_file = $this->getCachedImage($cache_key);
+                if ($cached_file) {
+                    copy($cached_file, $new_img_url);
+                    return true;
+                }
             }
             
             // Validate image
@@ -103,10 +143,12 @@ class WaterMarkHandler {
             }
             
             $text_color = imagecolorallocate($im, $text_color['r'], $text_color['g'], $text_color['b']);
-            $position = $this->calculatePosition($options['position'] ?? $this->options['watermark_position'], 
-                                               $img_size[0], 
-                                               $img_size[1], 
-                                               $text);
+            $position = $this->calculatePosition(
+                $this->resolveGridPosition($raw_position),
+                $img_size[0],
+                $img_size[1],
+                $text
+            );
             
             // Add watermark
             imagettftext(
@@ -123,8 +165,10 @@ class WaterMarkHandler {
             // Save image
             $this->saveImage($im, $new_img_url, $img_size['mime']);
             
-            // Cache result
-            copy($new_img_url, $this->cache_dir . $cache_key . '.jpg');
+            // Cache result（随机位置不使用缓存，避免多次上传被同一随机结果锁死）
+            if ($use_cache) {
+                copy($new_img_url, $this->cache_dir . $cache_key . '.jpg');
+            }
             
             imagedestroy($im);
             return true;
@@ -146,14 +190,17 @@ class WaterMarkHandler {
      */
     public function createImageWatermark($img_url, $watermark_url, $new_img_url, $options = []) {
         try {
-            // Generate cache key
-            $cache_key = $this->generateCacheKey($img_url, array_merge($this->options, $options));
-            
-            // Check cache
-            $cached_file = $this->getCachedImage($cache_key);
-            if ($cached_file) {
-                copy($cached_file, $new_img_url);
-                return true;
+            $merged = array_merge($this->options, $options);
+            $raw_position = $this->getRawWatermarkPosition($options);
+            $use_cache = ($raw_position !== 'random');
+
+            if ($use_cache) {
+                $cache_key = $this->generateCacheKey($img_url, $merged);
+                $cached_file = $this->getCachedImage($cache_key);
+                if ($cached_file) {
+                    copy($cached_file, $new_img_url);
+                    return true;
+                }
             }
             
             // Validate image
@@ -187,7 +234,7 @@ class WaterMarkHandler {
             
             // Calculate position
             $position = $this->calculatePosition(
-                $options['watermark_position'] ?? $this->options['watermark_position'],
+                $this->resolveGridPosition($raw_position),
                 $img_size[0],
                 $img_size[1],
                 '',
@@ -270,12 +317,11 @@ class WaterMarkHandler {
             }
             $this->saveImage($temp, $new_img_url, $img_size['mime']);
             
-            // 设置缓存文件扩展名
-            $cache_file = $this->cache_dir . $cache_key . 
-                         ($img_size['mime'] === 'image/png' ? '.png' : '.jpg');
-            
-            // 保存缓存
-            copy($new_img_url, $cache_file);
+            if ($use_cache) {
+                $cache_file = $this->cache_dir . $cache_key .
+                    ($img_size['mime'] === 'image/png' ? '.png' : '.jpg');
+                copy($new_img_url, $cache_file);
+            }
             
             // 清理资源
             imagedestroy($temp);
