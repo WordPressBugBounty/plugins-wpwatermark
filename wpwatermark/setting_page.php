@@ -3,7 +3,7 @@
  * 插件设置页面
  *
  * @package WPWaterMark
- * @version 5.1.6
+ * @version 5.1.7
  */
 // require_once('WaterMarkFunctions.php');
 
@@ -250,11 +250,11 @@ function wpwatermark_setting_page() {
 					</td>
 				</tr>
 				
-				<tr class="image-watermark-options" <?php echo $wpwatermark_options['watermark_type'] !== 'image_watermark' ? 'style="display:none;"' : ''; ?>>
+				<tr>
 					<th scope="row">透明度</th>
 					<td>
 						<input type="number" name="watermark_diaphaneity" value="<?php echo esc_attr($wpwatermark_options['watermark_diaphaneity']); ?>" class="small-text" min="0" max="100">
-						<p class="description">0-100之间，100为完全不透明</p>
+						<p class="description">0-100之间，100为完全不透明。此设置同时对文字水印和图片水印生效。</p>
 					</td>
 				</tr>
 				

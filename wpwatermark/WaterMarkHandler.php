@@ -171,7 +171,10 @@ class WaterMarkHandler {
                 throw new Exception('Font file not found');
             }
             
-            $text_color = imagecolorallocate($im, $text_color['r'], $text_color['g'], $text_color['b']);
+            $opacity = intval($options['watermark_diaphaneity'] ?? $this->options['watermark_diaphaneity']);
+            $opacity = min(100, max(0, $opacity));
+            $alpha = intval(round((100 - $opacity) * 127 / 100)); // 0(不透明)-127(全透明)
+            $text_color = imagecolorallocatealpha($im, $text_color['r'], $text_color['g'], $text_color['b'], $alpha);
             $position = $this->calculatePosition(
                 $this->resolveGridPosition($raw_position),
                 $img_size[0],
@@ -196,7 +199,15 @@ class WaterMarkHandler {
             
             // Cache result（随机位置不使用缓存，避免多次上传被同一随机结果锁死）
             if ($use_cache) {
-                copy($new_img_url, $this->cache_dir . $cache_key . '.jpg');
+                $cache_ext = 'jpg';
+                if ($img_size['mime'] === 'image/png') {
+                    $cache_ext = 'png';
+                } elseif ($img_size['mime'] === 'image/gif') {
+                    $cache_ext = 'gif';
+                } elseif ($img_size['mime'] === 'image/webp') {
+                    $cache_ext = 'webp';
+                }
+                copy($new_img_url, $this->cache_dir . $cache_key . '.' . $cache_ext);
             }
             
             imagedestroy($im);
