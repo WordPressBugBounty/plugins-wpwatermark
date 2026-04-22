@@ -13,6 +13,32 @@ class WaterMarkHandler {
     
     /** @var array */
     private $options;
+
+    /**
+     * 支持添加水印的 MIME 类型
+     *
+     * @return string[]
+     */
+    public static function getSupportedMimeTypes(): array {
+        $mimes = ['image/jpeg', 'image/png', 'image/gif'];
+        if (function_exists('imagecreatefromwebp') && function_exists('imagewebp')) {
+            $mimes[] = 'image/webp';
+        }
+        return $mimes;
+    }
+
+    /**
+     * 支持添加水印的扩展名（不带点）
+     *
+     * @return string[]
+     */
+    public static function getSupportedExtensions(): array {
+        $extensions = ['jpg', 'jpeg', 'png', 'gif'];
+        if (function_exists('imagecreatefromwebp') && function_exists('imagewebp')) {
+            $extensions[] = 'webp';
+        }
+        return $extensions;
+    }
     
     /**
      * Constructor
@@ -85,9 +111,12 @@ class WaterMarkHandler {
      * @return string|false
      */
     private function getCachedImage(string $cache_key) {
-        $cache_file = $this->cache_dir . $cache_key . '.jpg';
-        if (file_exists($cache_file) && (time() - filemtime($cache_file) < 3600)) {
-            return $cache_file;
+        $cache_extensions = ['jpg', 'png', 'gif', 'webp'];
+        foreach ($cache_extensions as $ext) {
+            $cache_file = $this->cache_dir . $cache_key . '.' . $ext;
+            if (file_exists($cache_file) && (time() - filemtime($cache_file) < 3600)) {
+                return $cache_file;
+            }
         }
         return false;
     }
@@ -250,7 +279,7 @@ class WaterMarkHandler {
             imagesavealpha($temp, true);
             
             // 如果原图是PNG，设置透明背景
-            if ($img_size['mime'] === 'image/png') {
+            if ($img_size['mime'] === 'image/png' || $img_size['mime'] === 'image/webp') {
                 $transparent = imagecolorallocatealpha($temp, 0, 0, 0, 127);
                 imagefilledrectangle($temp, 0, 0, $img_size[0], $img_size[1], $transparent);
             }
@@ -262,7 +291,7 @@ class WaterMarkHandler {
             $opacity = ($options['watermark_diaphaneity'] ?? $this->options['watermark_diaphaneity']);
             
             // 如果是PNG水印，保持其原有透明度
-            if ($watermark_size['mime'] === 'image/png') {
+            if ($watermark_size['mime'] === 'image/png' || $watermark_size['mime'] === 'image/webp') {
                 // 创建水印临时图像
                 $watermark_temp = imagecreatetruecolor($watermark_size[0], $watermark_size[1]);
                 imagealphablending($watermark_temp, false);
@@ -311,15 +340,22 @@ class WaterMarkHandler {
             }
             
             // 保存最终图像
-            if ($img_size['mime'] === 'image/png') {
+            if ($img_size['mime'] === 'image/png' || $img_size['mime'] === 'image/webp') {
                 imagealphablending($temp, false);
                 imagesavealpha($temp, true);
             }
             $this->saveImage($temp, $new_img_url, $img_size['mime']);
             
             if ($use_cache) {
-                $cache_file = $this->cache_dir . $cache_key .
-                    ($img_size['mime'] === 'image/png' ? '.png' : '.jpg');
+                $cache_ext = 'jpg';
+                if ($img_size['mime'] === 'image/png') {
+                    $cache_ext = 'png';
+                } elseif ($img_size['mime'] === 'image/gif') {
+                    $cache_ext = 'gif';
+                } elseif ($img_size['mime'] === 'image/webp') {
+                    $cache_ext = 'webp';
+                }
+                $cache_file = $this->cache_dir . $cache_key . '.' . $cache_ext;
                 copy($new_img_url, $cache_file);
             }
             
@@ -349,12 +385,16 @@ class WaterMarkHandler {
             'image/png'  => 'imagecreatefrompng',
             'image/gif'  => 'imagecreatefromgif'
         ];
+
+        if (function_exists('imagecreatefromwebp')) {
+            $create_functions['image/webp'] = 'imagecreatefromwebp';
+        }
         
         if (isset($create_functions[$mime_type])) {
             $im = call_user_func($create_functions[$mime_type], $img_url);
             
             // 特别处理PNG图片的透明度
-            if ($mime_type === 'image/png') {
+            if ($mime_type === 'image/png' || $mime_type === 'image/webp') {
                 imagealphablending($im, false);
                 imagesavealpha($im, true);
             }
@@ -381,6 +421,11 @@ class WaterMarkHandler {
                 return imagepng($im, $filename, 0); // 0-9, 0 for no compression to maintain quality
             case 'image/gif':
                 return imagegif($im, $filename);
+            case 'image/webp':
+                if (function_exists('imagewebp')) {
+                    return imagewebp($im, $filename, 95);
+                }
+                return false;
             default:
                 return false;
         }

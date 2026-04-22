@@ -4,7 +4,7 @@ Donate link: https://www.laojiang.me/contanct
 Tags:老部落,水印插件,wordpress水印插件,WPWaterMark
 Requires at least: 4.6.0
 Tested up to: 6.9
-Stable tag: 5.1.5
+Stable tag: 5.1.6
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -49,6 +49,11 @@ WPWaterMark，轻水印插件，方便每一个站长实现不同水印效果，
 2. screenshot-2.png
 
 == Changelog ==
+
+= 5.1.6 =
+* 新增「水印白名单后缀」设置：支持配置上传时不添加水印的文件后缀（英文逗号分隔）
+* 上传处理新增白名单判断，命中后缀时跳过添加水印
+* 补充并检测 WebP 水印能力：环境支持时可对 WebP 添加水印，不支持时在设置页显示提示
 
 = 5.1.5 =
 * 新增「随机九宫格」：与固定九宫格二选一，每次上传时在九个格子中随机选取水印位置

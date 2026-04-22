@@ -3,7 +3,7 @@
  * Plugin Name: WPWaterMark
  * Plugin URI: https://www.laojiang.me/5993.html
  * Description: WordPress轻水印插件，支持文字水印和图片水印，支持批量添加水印，支持自定义水印位置、大小、颜色、透明度等。公众号：老蒋朋友圈
- * Version: 5.1.5
+ * Version: 5.1.6
  * Requires at least: 5.0
  * Requires PHP: 7.4
  * Author: 老蒋和他的伙伴们
@@ -30,7 +30,7 @@ if (version_compare(PHP_VERSION, '7.4', '<')) {
 }
 
 // 定义插件版本和路径常量
-define('WPWaterMark_VERSION', '5.1.5');
+define('WPWaterMark_VERSION', '5.1.6');
 define('WPWaterMark_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('WPWaterMark_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('WPWaterMark_BASENAME', plugin_basename(__FILE__));
@@ -44,6 +44,40 @@ class WPWaterMark {
     private $config;
     private $handler;
     private $performance;
+
+    /**
+     * 解析白名单后缀配置
+     *
+     * @return string[]
+     */
+    private function getWhitelistExtensions(): array {
+        $raw = (string) $this->config->getOption('watermark_extension_whitelist');
+        if ($raw === '') {
+            return [];
+        }
+
+        $extensions = array_map('trim', explode(',', strtolower($raw)));
+        $extensions = array_map(static function ($ext) {
+            return ltrim($ext, '.');
+        }, $extensions);
+        $extensions = array_filter($extensions, static function ($ext) {
+            return $ext !== '';
+        });
+
+        return array_values(array_unique($extensions));
+    }
+
+    /**
+     * 当前文件后缀是否在白名单中
+     */
+    private function isWhitelistedExtension(array $file): bool {
+        $ext = strtolower(pathinfo($file['file'] ?? '', PATHINFO_EXTENSION));
+        if ($ext === '') {
+            return false;
+        }
+
+        return in_array($ext, $this->getWhitelistExtensions(), true);
+    }
     
     /**
      * 构造函数
@@ -135,9 +169,19 @@ class WPWaterMark {
         if (strpos($file['type'], 'image') === false) {
             return $file;
         }
+
+        // 检查当前图片类型是否支持水印处理
+        if (!in_array($file['type'], WaterMarkHandler::getSupportedMimeTypes(), true)) {
+            return $file;
+        }
         
         // 检查水印功能是否启用
         if ($this->config->getOption('watermark_enabled') !== '1') {
+            return $file;
+        }
+
+        // 白名单后缀不添加水印
+        if ($this->isWhitelistedExtension($file)) {
             return $file;
         }
         

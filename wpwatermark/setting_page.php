@@ -3,7 +3,7 @@
  * 插件设置页面
  *
  * @package WPWaterMark
- * @version 5.1.5
+ * @version 5.1.6
  */
 // require_once('WaterMarkFunctions.php');
 
@@ -55,6 +55,9 @@ function wpwatermark_setting_page() {
 		$wpwatermark_options['watermark_diaphaneity'] = absint($_POST['watermark_diaphaneity'] ?? 100);
 		$wpwatermark_options['watermark_min_width'] = absint($_POST['watermark_min_width'] ?? 300);
 		$wpwatermark_options['watermark_min_height'] = absint($_POST['watermark_min_height'] ?? 300);
+		$wpwatermark_options['watermark_extension_whitelist'] = sanitize_text_field(
+			wp_unslash($_POST['watermark_extension_whitelist'] ?? '')
+		);
 		
 		update_option('wpwatermark_options', $wpwatermark_options);
 		echo '<div class="notice notice-success is-dismissible"><p><strong>' . 
@@ -267,6 +270,19 @@ function wpwatermark_setting_page() {
 							<input type="number" name="watermark_min_height" value="<?php echo esc_attr($wpwatermark_options['watermark_min_height']); ?>" class="small-text" min="0">
 						</label>
 						<p class="description">只有超过这个尺寸的图片才会添加水印</p>
+					</td>
+				</tr>
+
+				<tr>
+					<th scope="row">水印白名单后缀</th>
+					<td>
+						<input type="text" name="watermark_extension_whitelist" value="<?php echo esc_attr($wpwatermark_options['watermark_extension_whitelist'] ?? ''); ?>" class="regular-text" placeholder="例如：webp,png">
+						<?php
+						$supported_extensions = WaterMarkHandler::getSupportedExtensions();
+						$webp_supported = in_array('webp', $supported_extensions, true);
+						?>
+						<p class="description">使用英文逗号分隔，填写后这些后缀上传时不添加水印（例如：webp,png）。</p>
+						<p class="description">当前支持添加水印的后缀：<?php echo esc_html(implode(', ', $supported_extensions)); ?><?php echo $webp_supported ? '' : '（当前环境未启用 WebP 处理能力）'; ?>。</p>
 					</td>
 				</tr>
 			</table>

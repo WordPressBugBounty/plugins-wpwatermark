@@ -19,7 +19,8 @@ class WaterMarkConfig {
         'watermark_margin' => '50',
         'watermark_diaphaneity' => '100',
         'watermark_min_width' => '300',
-        'watermark_min_height' => '300'
+        'watermark_min_height' => '300',
+        'watermark_extension_whitelist' => ''
     ];
     
     private $options;
@@ -77,6 +78,11 @@ class WaterMarkConfig {
         if ($this->options['watermark_type'] === 'image_watermark') {
             $this->options['watermark_mark_image'] = $this->validateImageUrl($this->options['watermark_mark_image']);
         }
+
+        // Validate extension whitelist
+        $this->options['watermark_extension_whitelist'] = $this->normalizeExtensionList(
+            $this->options['watermark_extension_whitelist']
+        );
     }
     
     /**
@@ -121,11 +127,34 @@ class WaterMarkConfig {
         // Check if image exists and is accessible
         $headers = get_headers($url, 1);
         if (strpos($headers[0], '200') === false || 
-            !preg_match('/^image\/(jpeg|png|gif)/', $headers['Content-Type'])) {
+            !preg_match('/^image\/(jpeg|png|gif|webp)/', $headers['Content-Type'])) {
             return '';
         }
         
         return esc_url_raw($url);
+    }
+
+    /**
+     * Normalize extension whitelist to lowercase CSV
+     */
+    private function normalizeExtensionList($extensions) {
+        $extensions = is_string($extensions) ? strtolower($extensions) : '';
+        $extensions = explode(',', $extensions);
+        $normalized = [];
+
+        foreach ($extensions as $ext) {
+            $ext = trim($ext);
+            $ext = ltrim($ext, '.');
+            if ($ext === '') {
+                continue;
+            }
+            if (preg_match('/^[a-z0-9]+$/', $ext)) {
+                $normalized[] = $ext;
+            }
+        }
+
+        $normalized = array_values(array_unique($normalized));
+        return implode(',', $normalized);
     }
     
     /**
