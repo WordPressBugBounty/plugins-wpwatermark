@@ -41,6 +41,7 @@ function wpwatermark_setting_page() {
 		$wpwatermark_options['text_size'] = absint($_POST['text_size'] ?? 14);
 		$wpwatermark_options['text_color'] = sanitize_hex_color($_POST['text_color'] ?? '#790000');
 		$wpwatermark_options['watermark_mark_image'] = esc_url_raw($_POST['watermark_mark_image'] ?? '');
+		$wpwatermark_options['image_watermark_scale'] = absint($_POST['image_watermark_scale'] ?? 100);
 		// 位置：优先根据单选项（与隐藏域双保险，避免仅依赖 JS 时未提交 random）
 		$position_mode = isset($_POST['wpwatermark_position_mode'])
 			? sanitize_text_field(wp_unslash($_POST['wpwatermark_position_mode']))
@@ -197,6 +198,14 @@ function wpwatermark_setting_page() {
 						</div>
 						<input type="hidden" name="watermark_mark_image" id="watermark_mark_image" value="<?php echo esc_attr($wpwatermark_options['watermark_mark_image']); ?>">
 						<button type="button" class="button wpwatermark-upload-button">选择图片</button>
+					</td>
+				</tr>
+
+				<tr class="image-watermark-options" <?php echo $wpwatermark_options['watermark_type'] !== 'image_watermark' ? 'style="display:none;"' : ''; ?>>
+					<th scope="row">图片水印缩放比例</th>
+					<td>
+						<input type="number" name="image_watermark_scale" value="<?php echo esc_attr($wpwatermark_options['image_watermark_scale'] ?? 100); ?>" class="small-text" min="1" max="100">
+						<p class="description">仅对图片水印生效。100 为原始大小，建议 20-80。按原图等比例缩小，不会拉伸变形。</p>
 					</td>
 				</tr>
 				

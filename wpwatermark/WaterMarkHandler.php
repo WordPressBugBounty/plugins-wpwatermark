@@ -50,8 +50,8 @@ class WaterMarkHandler {
         $this->cache_dir = plugin_dir_path(__FILE__) . 'cache/';
         $this->font_dir = plugin_dir_path(__FILE__) . 'fonts/';
         
-        // Ensure cache directory exists
-        if (!file_exists($this->cache_dir)) {
+        // 缓存默认关闭，不再自动创建缓存目录
+        if ($this->isCacheEnabled() && !file_exists($this->cache_dir)) {
             wp_mkdir_p($this->cache_dir);
         }
     }
@@ -65,6 +65,13 @@ class WaterMarkHandler {
      */
     private function generateCacheKey(string $img_url, array $options): string {
         return md5($img_url . serialize($options));
+    }
+
+    /**
+     * 是否启用水印缓存（默认关闭，避免长期占用磁盘）
+     */
+    private function isCacheEnabled(): bool {
+        return false;
     }
 
     /**
@@ -134,7 +141,7 @@ class WaterMarkHandler {
         try {
             $merged = array_merge($this->options, $options);
             $raw_position = $this->getRawWatermarkPosition($options);
-            $use_cache = ($raw_position !== 'random');
+            $use_cache = ($raw_position !== 'random') && $this->isCacheEnabled();
 
             if ($use_cache) {
                 $cache_key = $this->generateCacheKey($img_url, $merged);
@@ -173,26 +180,39 @@ class WaterMarkHandler {
             
             $opacity = intval($options['watermark_diaphaneity'] ?? $this->options['watermark_diaphaneity']);
             $opacity = min(100, max(0, $opacity));
-            $alpha = intval(round((100 - $opacity) * 127 / 100)); // 0(不透明)-127(全透明)
-            $text_color = imagecolorallocatealpha($im, $text_color['r'], $text_color['g'], $text_color['b'], $alpha);
+            $font_size = intval($options['text_size'] ?? $this->options['text_size']);
+            $font_angle = intval($options['text_angle'] ?? $this->options['text_angle']);
+
             $position = $this->calculatePosition(
                 $this->resolveGridPosition($raw_position),
                 $img_size[0],
                 $img_size[1],
-                $text
+                $text,
+                0,
+                0,
+                $font_size,
+                $font_angle,
+                $font_file
             );
             
-            // Add watermark
-            imagettftext(
+            $this->renderTextLayer(
                 $im,
-                $options['text_size'] ?? $this->options['text_size'],
-                $options['text_angle'] ?? $this->options['text_angle'],
+                $img_size[0],
+                $img_size[1],
+                $text,
+                $font_file,
+                $font_size,
+                $font_angle,
                 $position['x'],
                 $position['y'],
                 $text_color,
-                $font_file,
-                $text
+                $opacity
             );
+
+            if ($img_size['mime'] === 'image/png' || $img_size['mime'] === 'image/webp') {
+                imagealphablending($im, false);
+                imagesavealpha($im, true);
+            }
             
             // Save image
             $this->saveImage($im, $new_img_url, $img_size['mime']);
@@ -232,7 +252,7 @@ class WaterMarkHandler {
         try {
             $merged = array_merge($this->options, $options);
             $raw_position = $this->getRawWatermarkPosition($options);
-            $use_cache = ($raw_position !== 'random');
+            $use_cache = ($raw_position !== 'random') && $this->isCacheEnabled();
 
             if ($use_cache) {
                 $cache_key = $this->generateCacheKey($img_url, $merged);
@@ -270,6 +290,26 @@ class WaterMarkHandler {
             $watermark = $this->createImageResource($watermark_url, $watermark_size['mime']);
             if (!$watermark) {
                 throw new Exception('Failed to create watermark resource');
+            }
+
+            $scale_percent = intval($options['image_watermark_scale'] ?? $this->options['image_watermark_scale'] ?? 100);
+            $scale_percent = min(100, max(1, $scale_percent));
+            if ($scale_percent < 100) {
+                $scaled_width = max(1, intval(round($watermark_size[0] * $scale_percent / 100)));
+                $scaled_height = max(1, intval(round($watermark_size[1] * $scale_percent / 100)));
+                $scaled_watermark = $this->resizeWatermarkResource(
+                    $watermark,
+                    $watermark_size[0],
+                    $watermark_size[1],
+                    $scaled_width,
+                    $scaled_height
+                );
+                if ($scaled_watermark) {
+                    imagedestroy($watermark);
+                    $watermark = $scaled_watermark;
+                    $watermark_size[0] = $scaled_width;
+                    $watermark_size[1] = $scaled_height;
+                }
             }
             
             // Calculate position
@@ -512,30 +552,71 @@ class WaterMarkHandler {
             for ($x = 0; $x < $src_w; ++$x) {
                 $src_color = imagecolorsforindex($src_im, imagecolorat($src_im, $src_x + $x, $src_y + $y));
                 $dst_color = imagecolorsforindex($dst_im, imagecolorat($dst_im, $dst_x + $x, $dst_y + $y));
-                
-                // 计算新的透明度
-                $src_alpha = 127 - ($src_color['alpha'] * $pct / 100);
-                $dst_alpha = 127 - $dst_color['alpha'];
-                $final_alpha = 127 - (($src_alpha + $dst_alpha) / 2);
-                
-                // 混合颜色
-                $final_red = ($src_color['red'] * $pct + $dst_color['red'] * (100 - $pct)) / 100;
-                $final_green = ($src_color['green'] * $pct + $dst_color['green'] * (100 - $pct)) / 100;
-                $final_blue = ($src_color['blue'] * $pct + $dst_color['blue'] * (100 - $pct)) / 100;
+
+                // 按 Porter-Duff over 合成，避免边缘泛白/发灰
+                $src_opacity = (1 - ($src_color['alpha'] / 127)) * ($pct / 100);
+                $dst_opacity = 1 - ($dst_color['alpha'] / 127);
+                $out_opacity = $src_opacity + $dst_opacity * (1 - $src_opacity);
+
+                if ($out_opacity <= 0) {
+                    continue;
+                }
+
+                $final_red = (($src_color['red'] * $src_opacity) + ($dst_color['red'] * $dst_opacity * (1 - $src_opacity))) / $out_opacity;
+                $final_green = (($src_color['green'] * $src_opacity) + ($dst_color['green'] * $dst_opacity * (1 - $src_opacity))) / $out_opacity;
+                $final_blue = (($src_color['blue'] * $src_opacity) + ($dst_color['blue'] * $dst_opacity * (1 - $src_opacity))) / $out_opacity;
+                $final_alpha = 127 - intval(round($out_opacity * 127));
                 
                 // 创建新颜色
                 $final_color = imagecolorallocatealpha(
                     $dst_im,
-                    intval($final_red),
-                    intval($final_green),
-                    intval($final_blue),
-                    intval($final_alpha)
+                    intval(round($final_red)),
+                    intval(round($final_green)),
+                    intval(round($final_blue)),
+                    min(127, max(0, intval($final_alpha)))
                 );
                 
                 // 设置像素
                 imagesetpixel($dst_im, $dst_x + $x, $dst_y + $y, $final_color);
             }
         }
+    }
+
+    /**
+     * Resize watermark image while preserving alpha channel.
+     */
+    private function resizeWatermarkResource($source, $source_width, $source_height, $target_width, $target_height) {
+        if ($target_width <= 0 || $target_height <= 0) {
+            return false;
+        }
+
+        $target = imagecreatetruecolor($target_width, $target_height);
+        imagealphablending($target, false);
+        imagesavealpha($target, true);
+
+        $transparent = imagecolorallocatealpha($target, 0, 0, 0, 127);
+        imagefilledrectangle($target, 0, 0, $target_width, $target_height, $transparent);
+
+        $success = imagecopyresampled(
+            $target,
+            $source,
+            0,
+            0,
+            0,
+            0,
+            $target_width,
+            $target_height,
+            $source_width,
+            $source_height
+        );
+
+        if (!$success) {
+            imagedestroy($target);
+            return false;
+        }
+
+        imagealphablending($target, true);
+        return $target;
     }
     
     /**
@@ -549,16 +630,17 @@ class WaterMarkHandler {
      * @param int $mark_height
      * @return array{x: int, y: int}
      */
-    private function calculatePosition($position, $img_width, $img_height, $text = '', $mark_width = 0, $mark_height = 0) {
+    private function calculatePosition($position, $img_width, $img_height, $text = '', $mark_width = 0, $mark_height = 0, $font_size = null, $font_angle = null, $font_file = null) {
         $margin = intval($this->options['watermark_margin']);
         
         // For text watermark
         if ($text !== '') {
-            $font_size = $this->options['text_size'];
-            $font_file = $this->font_dir . $this->options['text_font'];
-            $text_box = imagettfbbox($font_size, 0, $font_file, $text);
-            $mark_width = abs($text_box[4] - $text_box[0]);
-            $mark_height = abs($text_box[1] - $text_box[5]);
+            $font_size = $font_size === null ? intval($this->options['text_size']) : intval($font_size);
+            $font_angle = $font_angle === null ? intval($this->options['text_angle']) : intval($font_angle);
+            $font_file = $font_file === null ? $this->font_dir . $this->options['text_font'] : $font_file;
+            $text_box = imagettfbbox($font_size, $font_angle, $font_file, $text);
+            $mark_width = abs($text_box[2] - $text_box[0]);
+            $mark_height = abs($text_box[1] - $text_box[7]);
         }
         
         // Calculate grid dimensions
@@ -622,5 +704,36 @@ class WaterMarkHandler {
                     'y' => intval($img_height - $mark_height - $margin)
                 ];
         }
+    }
+
+    /**
+     * Render text on a transparent layer first to avoid edge artifacts.
+     */
+    private function renderTextLayer($base_image, $width, $height, $text, $font_file, $font_size, $font_angle, $x, $y, $rgb, $opacity) {
+        $layer = imagecreatetruecolor($width, $height);
+        imagealphablending($layer, false);
+        imagesavealpha($layer, true);
+
+        $transparent = imagecolorallocatealpha($layer, 0, 0, 0, 127);
+        imagefilledrectangle($layer, 0, 0, $width, $height, $transparent);
+
+        imagealphablending($layer, true);
+        $alpha = intval(round((100 - $opacity) * 127 / 100)); // 0(不透明)-127(全透明)
+        $text_color = imagecolorallocatealpha($layer, $rgb['r'], $rgb['g'], $rgb['b'], $alpha);
+
+        imagettftext(
+            $layer,
+            $font_size,
+            $font_angle,
+            $x,
+            $y,
+            $text_color,
+            $font_file,
+            $text
+        );
+
+        imagealphablending($base_image, true);
+        imagecopy($base_image, $layer, 0, 0, 0, 0, $width, $height);
+        imagedestroy($layer);
     }
 } 

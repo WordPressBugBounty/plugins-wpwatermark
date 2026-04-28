@@ -15,6 +15,7 @@ class WaterMarkConfig {
         'text_size' => '14',
         'text_color' => '#790000',
         'watermark_mark_image' => '',
+        'image_watermark_scale' => '100',
         'watermark_position' => 'bottom-right',
         'watermark_margin' => '50',
         'watermark_diaphaneity' => '100',
@@ -47,6 +48,7 @@ class WaterMarkConfig {
         // Validate numeric values
         $this->options['text_angle'] = $this->validateNumeric('text_angle', 0, 360);
         $this->options['text_size'] = $this->validateNumeric('text_size', 8, 72);
+        $this->options['image_watermark_scale'] = $this->validateNumeric('image_watermark_scale', 1, 100);
         $this->options['watermark_margin'] = $this->validateNumeric('watermark_margin', 0, 200);
         $this->options['watermark_diaphaneity'] = $this->validateNumeric('watermark_diaphaneity', 0, 100);
         $this->options['watermark_min_width'] = $this->validateNumeric('watermark_min_width', 100, 9999);

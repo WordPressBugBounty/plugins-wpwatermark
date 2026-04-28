@@ -4,7 +4,7 @@ Donate link: https://www.laojiang.me/contanct
 Tags:老部落,水印插件,wordpress水印插件,WPWaterMark
 Requires at least: 4.6.0
 Tested up to: 6.9
-Stable tag: 5.1.7
+Stable tag: 5.2.1
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -13,12 +13,12 @@ WPWaterMark，轻水印插件，方便每一个站长实现不同水印效果，
 
 == Description ==
 
-基于WordPress程序，我们可以选择固定九宫格水印位置、随机九宫格位置，以及满铺水印，三种方式选择防止图片被盗，加强文章版权。公众号: <font color="red">老蒋朋友圈</font>
+基于WordPress程序，我们可以选择固定九宫格水印位置、随机九宫格位置，文字水印，三种方式选择防止图片被盗，加强文章版权。公众号: <font color="red">老蒋朋友圈</font>
 
 ## 主要功能：
 
 * 1、基于WordPress程序且免费提供给用户使用，加强图片水印功能，防止文章和图片被盗，至少保留水印，加强防盗能力；
-* 2、我们可选择九宫格、随机九宫格、满铺水印三种效果，至少是目前全网少有的插件之一；
+* 2、我们可选择九宫格、随机九宫格、文字水印三种效果，至少是目前全网少有的插件之一；
 * 3、轻水印插件支持设置文字、图片水印，可以设置旋转角度和透明度等常规功能。
 * 4、插件更多详细介绍和安装：<a href="https://www.laojiang.me/5993.html" target="_blank" >https://www.laojiang.me/5993.html</a>
 
@@ -49,6 +49,11 @@ WPWaterMark，轻水印插件，方便每一个站长实现不同水印效果，
 2. screenshot-2.png
 
 == Changelog ==
+
+= 5.2.1 =
+* 优化文字水印渲染：改为透明图层合成，减少文字边缘发白/描边感，文字显示更干净
+* 优化图片水印处理：新增「图片水印缩放比例（1-100%）」设置，支持等比例缩小，避免大图水印遮挡
+* 默认关闭水印缓存读写，避免长期运行在插件 cache 目录累积占用服务器空间
 
 = 5.1.7 =
 * 新增统一透明度设置：文字水印和图片水印均可通过同一透明度选项控制
