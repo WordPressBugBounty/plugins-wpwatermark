@@ -21,7 +21,11 @@ class WaterMarkConfig {
         'watermark_diaphaneity' => '100',
         'watermark_min_width' => '300',
         'watermark_min_height' => '300',
-        'watermark_extension_whitelist' => ''
+        'watermark_extension_whitelist' => '',
+        /** JPEG/WebP 输出质量 40–100，默认 82 与 WordPress 媒体习惯接近，利于控制体积 */
+        'output_jpeg_webp_quality' => '82',
+        /** PNG 无损压缩级别 0–9，默认 6；仅影响编码速度与体积，不改变画质 */
+        'output_png_compression' => '6',
     ];
     
     private $options;
@@ -53,6 +57,8 @@ class WaterMarkConfig {
         $this->options['watermark_diaphaneity'] = $this->validateNumeric('watermark_diaphaneity', 0, 100);
         $this->options['watermark_min_width'] = $this->validateNumeric('watermark_min_width', 100, 9999);
         $this->options['watermark_min_height'] = $this->validateNumeric('watermark_min_height', 100, 9999);
+        $this->options['output_jpeg_webp_quality'] = $this->validateNumeric('output_jpeg_webp_quality', 40, 100);
+        $this->options['output_png_compression'] = $this->validateNumeric('output_png_compression', 0, 9);
         
         // Validate watermark position（九宫格固定位置 + random 随机一格）
         $valid_positions = [

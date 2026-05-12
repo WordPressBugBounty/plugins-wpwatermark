@@ -37,3 +37,6 @@
 {"timestamp":"2026-04-28 08:24:52","operation":"image_upload","duration_ms":143.58,"memory_mb":0,"file_size":1807554,"image_dimensions":"820x550"}
 {"timestamp":"2026-04-28 08:33:05","operation":"image_upload","duration_ms":200.55,"memory_mb":0,"file_size":1613657,"image_dimensions":"820x491"}
 {"timestamp":"2026-04-28 08:33:21","operation":"image_upload","duration_ms":155.85,"memory_mb":0,"file_size":1616950,"image_dimensions":"820x492"}
+{"timestamp":"2026-05-12 12:46:44","operation":"image_upload","duration_ms":145.44,"memory_mb":0,"file_size":1607078,"image_dimensions":"820x489"}
+{"timestamp":"2026-05-12 12:57:48","operation":"image_upload","duration_ms":176.06,"memory_mb":0,"file_size":193279,"image_dimensions":"820x513"}
+{"timestamp":"2026-05-12 12:58:22","operation":"image_upload","duration_ms":164.15,"memory_mb":0,"file_size":211291,"image_dimensions":"820x489"}

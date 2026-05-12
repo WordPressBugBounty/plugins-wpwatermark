@@ -4,7 +4,7 @@ Donate link: https://www.laojiang.me/contanct
 Tags:老部落,水印插件,wordpress水印插件,WPWaterMark
 Requires at least: 4.6.0
 Tested up to: 6.9
-Stable tag: 5.2.1
+Stable tag: 5.2.2
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -49,6 +49,11 @@ WPWaterMark，轻水印插件，方便每一个站长实现不同水印效果，
 2. screenshot-2.png
 
 == Changelog ==
+
+= 5.2.2 =
+* 优化水印输出体积：修正 PNG 保存时使用压缩级别 0（无 zlib 压缩）导致文件异常偏大的问题，默认改为合理无损压缩级别
+* JPEG / WebP 输出默认质量调整为 82，并与全站 `jpeg_quality` 过滤器对齐，减少相对原图体积膨胀；可在设置页「输出体积优化」中微调
+* 设置页新增「输出体积优化」：JPEG/WebP 质量（40–100）、PNG 压缩级别（0–9，无损）
 
 = 5.2.1 =
 * 优化文字水印渲染：改为透明图层合成，减少文字边缘发白/描边感，文字显示更干净

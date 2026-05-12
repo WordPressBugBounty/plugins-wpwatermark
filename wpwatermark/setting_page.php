@@ -3,7 +3,7 @@
  * 插件设置页面
  *
  * @package WPWaterMark
- * @version 5.1.7
+ * @version 5.2.2
  */
 // require_once('WaterMarkFunctions.php');
 
@@ -13,7 +13,7 @@ if (!defined('ABSPATH')) {
 
 // 确保 WPWaterMark_VERSION 常量可用
 if (!defined('WPWaterMark_VERSION')) {
-	define('WPWaterMark_VERSION', '5.0.0');
+	define('WPWaterMark_VERSION', '5.2.2');
 }
 
 function wpwatermark_setting_page() {
@@ -24,11 +24,10 @@ function wpwatermark_setting_page() {
 		$wpwatermark_options = get_option('wpwatermark_options', array());
 	}
 	
-	// 确保选项是数组
 	if (!is_array($wpwatermark_options)) {
-		$config = new WaterMarkConfig();
-		$wpwatermark_options = $config->getOptions();
+		$wpwatermark_options = array();
 	}
+	$wpwatermark_options = (new WaterMarkConfig($wpwatermark_options))->getOptions();
 	
 	// 处理表单提交
 	if (isset($_POST['submit']) && check_admin_referer('wpwatermark_settings')) {
@@ -59,7 +58,16 @@ function wpwatermark_setting_page() {
 		$wpwatermark_options['watermark_extension_whitelist'] = sanitize_text_field(
 			wp_unslash($_POST['watermark_extension_whitelist'] ?? '')
 		);
+		$wpwatermark_options['output_jpeg_webp_quality'] = max(
+			40,
+			min(100, absint($_POST['output_jpeg_webp_quality'] ?? 82))
+		);
+		$wpwatermark_options['output_png_compression'] = max(
+			0,
+			min(9, absint($_POST['output_png_compression'] ?? 6))
+		);
 		
+		$wpwatermark_options = (new WaterMarkConfig($wpwatermark_options))->getOptions();
 		update_option('wpwatermark_options', $wpwatermark_options);
 		echo '<div class="notice notice-success is-dismissible"><p><strong>' . 
 			 __('设置已保存。', 'wpwatermark') . 
@@ -279,6 +287,22 @@ function wpwatermark_setting_page() {
 							<input type="number" name="watermark_min_height" value="<?php echo esc_attr($wpwatermark_options['watermark_min_height']); ?>" class="small-text" min="0">
 						</label>
 						<p class="description">只有超过这个尺寸的图片才会添加水印</p>
+					</td>
+				</tr>
+
+				<tr>
+					<th scope="row">输出体积优化</th>
+					<td>
+						<label>
+							JPEG / WebP 质量（40–100）：
+							<input type="number" name="output_jpeg_webp_quality" value="<?php echo esc_attr($wpwatermark_options['output_jpeg_webp_quality']); ?>" class="small-text" min="40" max="100" step="1">
+						</label>
+						<p class="description">默认 82，与 WordPress 常见设置接近；数值越低文件越小（有损略增）。站点上的 <code>jpeg_quality</code> 过滤器仍会参与计算。</p>
+						<label>
+							PNG 压缩级别（0–9，无损）：
+							<input type="number" name="output_png_compression" value="<?php echo esc_attr($wpwatermark_options['output_png_compression']); ?>" class="small-text" min="0" max="9" step="1">
+						</label>
+						<p class="description">此前使用 0 表示「无 zlib 压缩」，PNG 会异常偏大；默认 6 在体积与编码速度之间较均衡，且<strong>不改变像素画质</strong>。</p>
 					</td>
 				</tr>
 

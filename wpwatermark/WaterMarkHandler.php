@@ -457,6 +457,29 @@ class WaterMarkHandler {
     }
     
     /**
+     * JPEG/WebP 有损输出质量（与站点 `jpeg_quality` 过滤器对齐后再限制范围）
+     */
+    private function getOutputJpegWebpQuality(): int {
+        $q = isset($this->options['output_jpeg_webp_quality'])
+            ? (int) $this->options['output_jpeg_webp_quality']
+            : 82;
+        $q = max(40, min(100, $q));
+        $filtered = (int) apply_filters('jpeg_quality', $q);
+        return max(40, min(100, $filtered));
+    }
+
+    /**
+     * PNG zlib 压缩级别 0–9（无损，仅影响体积与编码耗时）
+     */
+    private function getPngCompressionLevel(): int {
+        $level = isset($this->options['output_png_compression'])
+            ? (int) $this->options['output_png_compression']
+            : 6;
+        $level = max(0, min(9, $level));
+        return max(0, min(9, (int) apply_filters('wpwatermark_png_compression', $level)));
+    }
+
+    /**
      * Helper function to save image
      * 
      * @param resource $im
@@ -467,14 +490,15 @@ class WaterMarkHandler {
     private function saveImage($im, string $filename, string $mime_type): bool {
         switch ($mime_type) {
             case 'image/jpeg':
-                return imagejpeg($im, $filename, 95); // 95% quality for JPEG
+                return imagejpeg($im, $filename, $this->getOutputJpegWebpQuality());
             case 'image/png':
-                return imagepng($im, $filename, 0); // 0-9, 0 for no compression to maintain quality
+                // 第三参数为压缩级别：0 无压缩体积极大；PNG 无损，提高级别不损画质
+                return imagepng($im, $filename, $this->getPngCompressionLevel());
             case 'image/gif':
                 return imagegif($im, $filename);
             case 'image/webp':
                 if (function_exists('imagewebp')) {
-                    return imagewebp($im, $filename, 95);
+                    return imagewebp($im, $filename, $this->getOutputJpegWebpQuality());
                 }
                 return false;
             default:
