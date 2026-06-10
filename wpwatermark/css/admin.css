@@ -178,6 +178,52 @@
     height: auto;
 }
 
+.wpwatermark-footer {
+    margin-top: 32px;
+    padding: 28px 20px 24px;
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, .04);
+    text-align: center;
+}
+
+.wpwatermark-footer__qrcode {
+    display: block;
+    width: 150px;
+    height: 150px;
+    margin: 0 auto 14px;
+    border: 1px solid #ddd;
+    padding: 4px;
+    background: #fff;
+}
+
+.wpwatermark-footer__desc {
+    margin: 0 0 10px;
+    font-size: 14px;
+    color: #1d2327;
+}
+
+.wpwatermark-footer__copyright {
+    margin: 0;
+    font-size: 13px;
+    color: #646970;
+}
+
+.wpwatermark-footer__copyright a {
+    color: #2271b1;
+    text-decoration: none;
+}
+
+.wpwatermark-footer__copyright a:hover {
+    color: #135e96;
+    text-decoration: underline;
+}
+
+.wpwatermark-footer__sep {
+    margin: 0 8px;
+    color: #a7aaad;
+}
+
 /* WordPress Color Picker 样式覆盖 */
 .wp-picker-container {
     display: inline-block;

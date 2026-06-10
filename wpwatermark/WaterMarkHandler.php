@@ -215,7 +215,9 @@ class WaterMarkHandler {
             }
             
             // Save image
-            $this->saveImage($im, $new_img_url, $img_size['mime']);
+            if (!$this->saveImage($im, $new_img_url, $img_size['mime'], $img_url)) {
+                throw new Exception('Failed to save watermarked image');
+            }
             
             // Cache result（随机位置不使用缓存，避免多次上传被同一随机结果锁死）
             if ($use_cache) {
@@ -322,21 +324,9 @@ class WaterMarkHandler {
                 $watermark_size[1]
             );
 
-            // 创建临时图像用于处理
-            $temp = imagecreatetruecolor($img_size[0], $img_size[1]);
-            
-            // 设置临时图像的透明度支持
-            imagealphablending($temp, false);
-            imagesavealpha($temp, true);
-            
-            // 如果原图是PNG，设置透明背景
-            if ($img_size['mime'] === 'image/png' || $img_size['mime'] === 'image/webp') {
-                $transparent = imagecolorallocatealpha($temp, 0, 0, 0, 127);
-                imagefilledrectangle($temp, 0, 0, $img_size[0], $img_size[1], $transparent);
-            }
-            
-            // 复制原图到临时图像
-            imagecopy($temp, $im, 0, 0, 0, 0, $img_size[0], $img_size[1]);
+            // 创建临时图像并正确复制原图（JPEG/GIF 不使用透明画布，避免原图被复制成透明）
+            $temp = $this->createWorkingCanvas($img_size[0], $img_size[1], $img_size['mime']);
+            $this->copyImageOntoCanvas($temp, $im, $img_size[0], $img_size[1], $img_size['mime']);
             
             // 获取透明度设置
             $opacity = ($options['watermark_diaphaneity'] ?? $this->options['watermark_diaphaneity']);
@@ -395,7 +385,9 @@ class WaterMarkHandler {
                 imagealphablending($temp, false);
                 imagesavealpha($temp, true);
             }
-            $this->saveImage($temp, $new_img_url, $img_size['mime']);
+            if (!$this->saveImage($temp, $new_img_url, $img_size['mime'], $img_url)) {
+                throw new Exception('Failed to save watermarked image');
+            }
             
             if ($use_cache) {
                 $cache_ext = 'jpg';
@@ -431,29 +423,236 @@ class WaterMarkHandler {
      * @return resource|false
      */
     private function createImageResource(string $img_url, string $mime_type) {
+        $img_size = @getimagesize($img_url);
+        $width = is_array($img_size) ? (int) $img_size[0] : 0;
+        $height = is_array($img_size) ? (int) $img_size[1] : 0;
+
+        $im = $this->createImageResourceWithGd($img_url, $mime_type);
+        if ($im && !$this->isDecodedImageBroken($im, $width, $height, $mime_type)) {
+            $this->normalizeImageResource($im, $mime_type);
+            return $im;
+        }
+        if ($im) {
+            imagedestroy($im);
+        }
+
+        $im = $this->createImageResourceFromString($img_url);
+        if ($im && !$this->isDecodedImageBroken($im, $width, $height, $mime_type)) {
+            $this->normalizeImageResource($im, $mime_type);
+            return $im;
+        }
+        if ($im) {
+            imagedestroy($im);
+        }
+
+        $im = $this->createImageResourceWithImagick($img_url, $mime_type);
+        if ($im) {
+            $this->normalizeImageResource($im, $mime_type);
+            return $im;
+        }
+
+        return false;
+    }
+
+    /**
+     * Decode image with native GD loaders.
+     */
+    private function createImageResourceWithGd(string $img_url, string $mime_type) {
         $create_functions = [
             'image/jpeg' => 'imagecreatefromjpeg',
             'image/png'  => 'imagecreatefrompng',
-            'image/gif'  => 'imagecreatefromgif'
+            'image/gif'  => 'imagecreatefromgif',
         ];
 
         if (function_exists('imagecreatefromwebp')) {
             $create_functions['image/webp'] = 'imagecreatefromwebp';
         }
-        
-        if (isset($create_functions[$mime_type])) {
-            $im = call_user_func($create_functions[$mime_type], $img_url);
-            
-            // 特别处理PNG图片的透明度
-            if ($mime_type === 'image/png' || $mime_type === 'image/webp') {
-                imagealphablending($im, false);
-                imagesavealpha($im, true);
-            }
-            
-            return $im;
+
+        if (!isset($create_functions[$mime_type])) {
+            return false;
         }
-        
-        return false;
+
+        return @call_user_func($create_functions[$mime_type], $img_url);
+    }
+
+    /**
+     * Decode image from raw bytes; some optimizer outputs work here when GD loaders fail.
+     */
+    private function createImageResourceFromString(string $img_url) {
+        if (!function_exists('imagecreatefromstring')) {
+            return false;
+        }
+
+        $bytes = @file_get_contents($img_url);
+        if ($bytes === false || $bytes === '') {
+            return false;
+        }
+
+        return @imagecreatefromstring($bytes);
+    }
+
+    /**
+     * Decode image via Imagick for CMYK/ICC/progressive/optimizer outputs that GD mishandles.
+     */
+    private function createImageResourceWithImagick(string $img_url, string $mime_type) {
+        if (!class_exists('Imagick')) {
+            return false;
+        }
+
+        $imagick = null;
+
+        try {
+            $imagick = new Imagick();
+            $imagick->readImage($img_url);
+
+            if (defined('Imagick::COLORSPACE_SRGB') && method_exists($imagick, 'transformImageColorspace')) {
+                $imagick->transformImageColorspace(Imagick::COLORSPACE_SRGB);
+            } elseif (defined('Imagick::COLORSPACE_RGB')) {
+                $imagick->setImageColorspace(Imagick::COLORSPACE_RGB);
+            }
+
+            if ($mime_type === 'image/png' || $mime_type === 'image/webp') {
+                $imagick->setImageFormat('png');
+            } elseif ($mime_type === 'image/gif') {
+                $imagick->setImageFormat('gif');
+            } else {
+                $imagick->setImageBackgroundColor('white');
+                if (defined('Imagick::ALPHACHANNEL_REMOVE')) {
+                    $imagick->setImageAlphaChannel(Imagick::ALPHACHANNEL_REMOVE);
+                }
+                if (method_exists($imagick, 'mergeImageLayers') && defined('Imagick::LAYERMETHOD_FLATTEN')) {
+                    $imagick = $imagick->mergeImageLayers(Imagick::LAYERMETHOD_FLATTEN);
+                }
+                $imagick->setImageFormat('jpeg');
+            }
+
+            $resource = @imagecreatefromstring($imagick->getImagesBlob());
+            $imagick->clear();
+            $imagick->destroy();
+
+            return $resource ?: false;
+        } catch (Exception $e) {
+            if ($imagick instanceof Imagick) {
+                $imagick->clear();
+                $imagick->destroy();
+            }
+            error_log('WaterMark Imagick conversion failed: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Detect blank/solid-color decodes that often happen with compressed or ICC JPEG/PNG files.
+     */
+    private function isDecodedImageBroken($im, int $width, int $height, string $mime_type): bool {
+        if ($width < 80 || $height < 80) {
+            return false;
+        }
+
+        $sample_points = [
+            [0, 0],
+            [$width - 1, 0],
+            [0, $height - 1],
+            [$width - 1, $height - 1],
+            [intval($width / 2), intval($height / 2)],
+            [intval($width / 4), intval($height / 4)],
+            [intval($width * 3 / 4), intval($height / 4)],
+            [intval($width / 4), intval($height * 3 / 4)],
+            [intval($width * 3 / 4), intval($height * 3 / 4)],
+        ];
+
+        $reds = [];
+        $greens = [];
+        $blues = [];
+        $transparent_count = 0;
+
+        foreach ($sample_points as $point) {
+            [$x, $y] = $point;
+            if ($x < 0 || $y < 0 || $x >= $width || $y >= $height) {
+                continue;
+            }
+
+            $rgba = @imagecolorat($im, $x, $y);
+            if ($rgba === false) {
+                continue;
+            }
+
+            $color = imagecolorsforindex($im, $rgba);
+            if (($mime_type === 'image/png' || $mime_type === 'image/webp') && $color['alpha'] >= 120) {
+                $transparent_count++;
+                continue;
+            }
+
+            $reds[] = $color['red'];
+            $greens[] = $color['green'];
+            $blues[] = $color['blue'];
+        }
+
+        if (($mime_type === 'image/png' || $mime_type === 'image/webp') && $transparent_count >= 7) {
+            return true;
+        }
+
+        if (count($reds) < 4) {
+            return false;
+        }
+
+        $red_range = max($reds) - min($reds);
+        $green_range = max($greens) - min($greens);
+        $blue_range = max($blues) - min($blues);
+
+        return ($red_range + $green_range + $blue_range) <= 3;
+    }
+
+    /**
+     * Create a composition canvas with the correct alpha settings for each mime type.
+     */
+    private function createWorkingCanvas(int $width, int $height, string $mime_type) {
+        $canvas = imagecreatetruecolor($width, $height);
+
+        if ($mime_type === 'image/png' || $mime_type === 'image/webp') {
+            imagealphablending($canvas, false);
+            imagesavealpha($canvas, true);
+            $transparent = imagecolorallocatealpha($canvas, 0, 0, 0, 127);
+            imagefilledrectangle($canvas, 0, 0, $width, $height, $transparent);
+            return $canvas;
+        }
+
+        imagealphablending($canvas, true);
+        imagesavealpha($canvas, false);
+        $background = imagecolorallocate($canvas, 255, 255, 255);
+        imagefilledrectangle($canvas, 0, 0, $width, $height, $background);
+
+        return $canvas;
+    }
+
+    /**
+     * Copy a decoded source image onto the working canvas without losing opaque pixels.
+     */
+    private function copyImageOntoCanvas($canvas, $source, int $width, int $height, string $mime_type): void {
+        if ($mime_type === 'image/png' || $mime_type === 'image/webp') {
+            imagealphablending($canvas, true);
+            imagecopy($canvas, $source, 0, 0, 0, 0, $width, $height);
+            imagealphablending($canvas, false);
+            imagesavealpha($canvas, true);
+            return;
+        }
+
+        imagealphablending($canvas, true);
+        imagecopy($canvas, $source, 0, 0, 0, 0, $width, $height);
+    }
+
+    /**
+     * Normalize loaded resources before composition.
+     */
+    private function normalizeImageResource($im, string $mime_type): void {
+        if (function_exists('imagepalettetotruecolor') && !imageistruecolor($im)) {
+            imagepalettetotruecolor($im);
+        }
+
+        if ($mime_type === 'image/png' || $mime_type === 'image/webp') {
+            imagealphablending($im, false);
+            imagesavealpha($im, true);
+        }
     }
     
     /**
@@ -480,29 +679,123 @@ class WaterMarkHandler {
     }
 
     /**
+     * 水印后允许的最大体积增长比例，默认最多增长 20%。
+     */
+    private function getMaxOutputSizeGrowthRatio(): float {
+        $ratio = (float) apply_filters('wpwatermark_max_size_growth_ratio', 1.2);
+        return max(1.0, min(5.0, $ratio));
+    }
+
+    /**
+     * 自适应重编码时的最低 JPEG/WebP 质量，避免为了体积过度损伤画质。
+     */
+    private function getMinAdaptiveJpegWebpQuality(): int {
+        $quality = (int) apply_filters('wpwatermark_min_adaptive_jpeg_webp_quality', 76);
+        return max(40, min(100, $quality));
+    }
+
+    /**
      * Helper function to save image
      * 
      * @param resource $im
      * @param string $filename
      * @param string $mime_type
+     * @param string|null $source_filename
      * @return bool
      */
-    private function saveImage($im, string $filename, string $mime_type): bool {
+    private function saveImage($im, string $filename, string $mime_type, ?string $source_filename = null): bool {
+        $target = $filename;
+        $temp_file = null;
+        if ($source_filename) {
+            clearstatcache(true, $source_filename);
+        }
+        $source_size = ($source_filename && file_exists($source_filename)) ? filesize($source_filename) : false;
+
+        if ($source_size !== false) {
+            $temp_file = tempnam(dirname($filename), 'wpwatermark-');
+            if ($temp_file) {
+                $target = $temp_file;
+            }
+        }
+
+        $saved = $this->writeImage($im, $target, $mime_type);
+        if (!$saved) {
+            if ($temp_file && file_exists($temp_file)) {
+                @unlink($temp_file);
+            }
+            return false;
+        }
+
+        if ($source_size !== false) {
+            clearstatcache(true, $target);
+            $this->optimizeOutputSize($im, $target, $mime_type, (int) $source_size);
+        }
+
+        if (!$temp_file) {
+            return true;
+        }
+
+        $copied = @copy($temp_file, $filename);
+        @unlink($temp_file);
+        return $copied;
+    }
+
+    /**
+     * Write an image using configured quality/compression values.
+     */
+    private function writeImage($im, string $filename, string $mime_type, ?int $quality = null, ?int $png_compression = null): bool {
         switch ($mime_type) {
             case 'image/jpeg':
-                return imagejpeg($im, $filename, $this->getOutputJpegWebpQuality());
+                return imagejpeg($im, $filename, $quality ?? $this->getOutputJpegWebpQuality());
             case 'image/png':
                 // 第三参数为压缩级别：0 无压缩体积极大；PNG 无损，提高级别不损画质
-                return imagepng($im, $filename, $this->getPngCompressionLevel());
+                return imagepng($im, $filename, $png_compression ?? $this->getPngCompressionLevel());
             case 'image/gif':
                 return imagegif($im, $filename);
             case 'image/webp':
                 if (function_exists('imagewebp')) {
-                    return imagewebp($im, $filename, $this->getOutputJpegWebpQuality());
+                    return imagewebp($im, $filename, $quality ?? $this->getOutputJpegWebpQuality());
                 }
                 return false;
             default:
                 return false;
+        }
+    }
+
+    /**
+     * Re-encode oversized outputs within conservative quality limits.
+     */
+    private function optimizeOutputSize($im, string $filename, string $mime_type, int $source_size): void {
+        if ($source_size <= 0 || !file_exists($filename)) {
+            return;
+        }
+
+        $max_size = (int) ceil($source_size * $this->getMaxOutputSizeGrowthRatio());
+        clearstatcache(true, $filename);
+        if (filesize($filename) <= $max_size) {
+            return;
+        }
+
+        if ($mime_type === 'image/png') {
+            if ($this->getPngCompressionLevel() < 9) {
+                $this->writeImage($im, $filename, $mime_type, null, 9);
+            }
+            return;
+        }
+
+        if ($mime_type !== 'image/jpeg' && $mime_type !== 'image/webp') {
+            return;
+        }
+
+        $configured_quality = $this->getOutputJpegWebpQuality();
+        $min_quality = min($configured_quality, $this->getMinAdaptiveJpegWebpQuality());
+
+        for ($quality = $configured_quality - 4; $quality >= $min_quality; $quality -= 4) {
+            $this->writeImage($im, $filename, $mime_type, $quality);
+            clearstatcache(true, $filename);
+            if (file_exists($filename) && filesize($filename) <= $max_size) {
+                return;
+            }
         }
     }
     

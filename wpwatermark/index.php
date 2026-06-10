@@ -1,12 +1,12 @@
 <?php
 /**
  * Plugin Name: WPWaterMark
- * Plugin URI: https://www.laojiang.me/5993.html
+ * Plugin URI: https://www.lezaiyun.com/wpwatermark.html
  * Description: WordPress轻水印插件，支持文字水印和图片水印，支持批量添加水印，支持自定义水印位置、大小、颜色、透明度等。公众号：老蒋朋友圈
- * Version: 5.2.2
+ * Version: 5.2.4
  * Requires at least: 5.0
  * Requires PHP: 7.4
- * Author: 老蒋和他的伙伴们
+ * Author: 老蒋
  * Author URI: https://www.laojiang.me
  * License: GPL v2 or later
  * License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -30,7 +30,7 @@ if (version_compare(PHP_VERSION, '7.4', '<')) {
 }
 
 // 定义插件版本和路径常量
-define('WPWaterMark_VERSION', '5.2.2');
+define('WPWaterMark_VERSION', '5.2.4');
 define('WPWaterMark_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('WPWaterMark_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('WPWaterMark_BASENAME', plugin_basename(__FILE__));
@@ -38,13 +38,10 @@ define('WPWaterMark_BASENAME', plugin_basename(__FILE__));
 // 加载必要的类
 require_once(WPWaterMark_PLUGIN_DIR . 'WaterMarkConfig.php');
 require_once(WPWaterMark_PLUGIN_DIR . 'WaterMarkHandler.php');
-require_once(WPWaterMark_PLUGIN_DIR . 'WaterMarkPerformance.php');
 
 class WPWaterMark {
     private $config;
     private $handler;
-    private $performance;
-
     /**
      * 解析白名单后缀配置
      *
@@ -86,19 +83,15 @@ class WPWaterMark {
         // 初始化组件
         $this->config = WaterMarkConfig::loadFromWordPress();
         $this->handler = new WaterMarkHandler($this->config->getOptions());
-        $this->performance = new WaterMarkPerformance();
         
         // 注册钩子
         add_action('admin_menu', array($this, 'addAdminMenu'));
         add_action('admin_init', array($this, 'registerSettings'));
         add_filter('wp_handle_upload', array($this, 'handleImageUpload'));
         add_action('admin_enqueue_scripts', array($this, 'enqueueAdminScripts'));
-        
-        // 添加定期清理日志的计划任务
-        if (!wp_next_scheduled('wpwatermark_clean_logs')) {
-            wp_schedule_event(time(), 'daily', 'wpwatermark_clean_logs');
-        }
-        add_action('wpwatermark_clean_logs', array($this, 'cleanLogs'));
+
+        // 性能日志默认关闭，清理旧版本遗留的定时任务
+        wp_clear_scheduled_hook('wpwatermark_clean_logs');
     }
     
     /**
@@ -197,9 +190,6 @@ class WPWaterMark {
             return $file;
         }
         
-        // 开始性能监控
-        $this->performance->startMonitoring();
-        
         try {
             // 添加水印
             if ($this->config->getOption('watermark_type') === 'text_watermark') {
@@ -215,13 +205,6 @@ class WPWaterMark {
                     $file['file']
                 );
             }
-            
-            // 记录性能数据
-            $this->performance->endMonitoring('image_upload', [
-                'file_size' => filesize($file['file']),
-                'image_dimensions' => $image_size[0] . 'x' . $image_size[1]
-            ]);
-            
         } catch (Exception $e) {
             error_log('WPWaterMark Error: ' . $e->getMessage());
         }
@@ -251,18 +234,11 @@ class WPWaterMark {
     }
     
     /**
-     * 清理日志
-     */
-    public function cleanLogs() {
-        $this->performance->cleanOldLogs(30); // 保留30天的日志
-    }
-    
-    /**
      * 插件激活时的处理
      */
     public static function activate() {
         // 创建必要的目录
-        $dirs = array('cache', 'logs');
+        $dirs = array('cache');
         foreach ($dirs as $dir) {
             $path = WPWaterMark_PLUGIN_DIR . $dir;
             if (!file_exists($path)) {

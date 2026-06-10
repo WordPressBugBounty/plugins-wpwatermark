@@ -3,7 +3,7 @@
  * 插件设置页面
  *
  * @package WPWaterMark
- * @version 5.2.2
+ * @version 5.2.4
  */
 // require_once('WaterMarkFunctions.php');
 
@@ -13,7 +13,7 @@ if (!defined('ABSPATH')) {
 
 // 确保 WPWaterMark_VERSION 常量可用
 if (!defined('WPWaterMark_VERSION')) {
-	define('WPWaterMark_VERSION', '5.2.2');
+	define('WPWaterMark_VERSION', '5.2.4');
 }
 
 function wpwatermark_setting_page() {
@@ -113,7 +113,7 @@ function wpwatermark_setting_page() {
 	?>
 	<div class="wrap wpwatermark-wrap">
 		<h1>WPWaterMark 水印插件设置</h1>
-		<p>在这里，我们要对水印插件设置。<a href="https://www.laojiang.me/5993.html" target="_blank">插件介绍</a>（关注公众号：<span style="color: red;">老蒋朋友圈</span>）</p>
+		<p>在这里，我们要对水印插件设置。<a href="https://www.lezaiyun.com/wpwatermark.html" target="_blank">插件介绍</a>（关注公众号：<span style="color: red;">lezaiyun</span>）</p>
 		<form method="post" action="" class="wpwatermark-form">
 			<?php wp_nonce_field('wpwatermark_settings'); ?>
 			
@@ -297,12 +297,12 @@ function wpwatermark_setting_page() {
 							JPEG / WebP 质量（40–100）：
 							<input type="number" name="output_jpeg_webp_quality" value="<?php echo esc_attr($wpwatermark_options['output_jpeg_webp_quality']); ?>" class="small-text" min="40" max="100" step="1">
 						</label>
-						<p class="description">默认 82，与 WordPress 常见设置接近；数值越低文件越小（有损略增）。站点上的 <code>jpeg_quality</code> 过滤器仍会参与计算。</p>
+						<p class="description">默认 82，与 WordPress 常见设置接近；数值越低文件越小（有损略增）。若水印后体积超过原图约 20%，会在保守范围内自动降档重试。站点上的 <code>jpeg_quality</code> 过滤器仍会参与计算。</p>
 						<label>
 							PNG 压缩级别（0–9，无损）：
 							<input type="number" name="output_png_compression" value="<?php echo esc_attr($wpwatermark_options['output_png_compression']); ?>" class="small-text" min="0" max="9" step="1">
 						</label>
-						<p class="description">此前使用 0 表示「无 zlib 压缩」，PNG 会异常偏大；默认 6 在体积与编码速度之间较均衡，且<strong>不改变像素画质</strong>。</p>
+						<p class="description">此前使用 0 表示「无 zlib 压缩」，PNG 会异常偏大；默认 6 在体积与编码速度之间较均衡。若水印后体积偏大，会自动改用 9 级无损压缩重试，且<strong>不改变像素画质</strong>。</p>
 					</td>
 				</tr>
 
@@ -325,13 +325,27 @@ function wpwatermark_setting_page() {
 				<input type="submit" name="preview" class="button" value="预览效果">
 			</p>
 		</form>
-		<p><img width="150" height="150" src="<?php echo plugins_url('/images/wechat.png', __FILE__); ?>" alt="扫码关注公众号" /></p>
 		<?php if (isset($_POST['preview']) && file_exists(plugin_dir_path(__FILE__) . 'preview.jpg')): ?>
 		<div class="wpwatermark-preview">
 			<h2>预览效果</h2>
 			<img src="<?php echo esc_url(plugin_dir_url(__FILE__) . 'preview.jpg?' . time()); ?>" alt="水印预览">
 		</div>
 		<?php endif; ?>
+		<div class="wpwatermark-footer">
+			<img
+				class="wpwatermark-footer__qrcode"
+				src="<?php echo esc_url(plugins_url('images/wechat.png', __FILE__)); ?>"
+				width="150"
+				height="150"
+				alt="乐在云公众号二维码"
+			>
+			<p class="wpwatermark-footer__desc">关注乐在云，获取插件教程、更新通知</p>
+			<p class="wpwatermark-footer__copyright">2026 &copy;
+				<a href="https://www.lezaiyun.com/" target="_blank" rel="noopener noreferrer">乐在云工作室</a>
+				<span class="wpwatermark-footer__sep">·</span>
+				<span>By </span><a href="https://www.laojiang.me/" target="_blank" rel="noopener noreferrer">老蒋</a>
+			</p>
+		</div>
 	</div>
 	<?php
 }

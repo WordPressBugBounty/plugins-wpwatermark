@@ -10,7 +10,7 @@ WordPress 轻量级水印插件，支持文字水印和图片水印，自动为�
 
 | 类目             | 信息                                                         |
 | ---------------- | ------------------------------------------------------------ |
-| 插件更新地址     | https://www.laojiang.me/5993.html                          |
+| 插件更新地址     | https://www.lezaiyun.com/wpwatermark.html                          |
 | 团队成员         | [老蒋](https://www.laojiang.me/)、老赵、[CNJOEL](https://www.rakvps.com/)、木村 |
 | 支持网站         | 乐在云、主机评价网、老蒋玩主机                               |
 | 建站资源推荐     | [便宜VPS推荐](https://www.zhujipingjia.com/pianyivps.html)、[美国VPS推荐](https://www.zhujipingjia.com/uscn2gia.html)、[外贸建站主机](https://www.zhujipingjia.com/wordpress-hosting.html)、[SSL证书推荐](https://www.zhujipingjia.com/two-ssls.html)、[WordPress主机推荐](https://www.zhujipingjia.com/wpblog-host.html) |
@@ -114,6 +114,18 @@ A: 将 TTF 字体文件放入插件的 `fonts` 目录，即可在设置中选择
 
 ## 更新日志
 
+### 5.2.4
+- 修复经压缩软件处理后的图片上传加水印时只看到水印、看不到原图的问题
+- 新增三层图片解码回退：GD 原生读取 → imagecreatefromstring → Imagick（环境支持时）
+- 新增解码结果异常检测：全白、全透明或纯色图自动换下一层方式重试
+- 修正图片水印合成时 JPG/GIF 被放入透明画布导致原图丢失的问题，按格式分别创建不透明/透明画布
+
+### 5.2.3
+- 修复部分特殊 JPEG 图片添加水印后原图变白、但水印仍可见的问题：对 CMYK/特殊色彩空间 JPEG 在支持 Imagick 的环境中先转换为 sRGB，再交给 GD 处理
+- 优化 PNG/GIF/WebP 等图片加载流程：统一转真彩色资源，并保留 PNG/WebP 透明通道，减少透明度和合成异常
+- 新增水印输出体积保护：先写入临时文件再替换原图，JPG/WebP 超过原图约 20% 时在保守质量范围内自动重编码，PNG 偏大时自动使用 9 级无损压缩重试
+- 改进保存失败处理：水印保存失败时明确返回错误，避免覆盖写入失败造成原文件异常
+
 ### 5.2.2
 - 优化水印输出体积：修正 PNG 保存时压缩级别为 0（无 zlib 压缩）导致文件异常偏大的问题，默认使用合理无损压缩级别
 - JPEG / WebP 默认输出质量改为 82，并与全站 `jpeg_quality` 过滤器对齐，减轻相对原图的体积膨胀
@@ -156,9 +168,5 @@ A: 将 TTF 字体文件放入插件的 `fonts` 目录，即可在设置中选择
 ## 许可证
 
 GPL v2 或更高版本 - [查看完整许可证](http://www.gnu.org/licenses/gpl-2.0.html)
-
-## 作者
-
-老蒋和他的伙伴们（公众号：老蒋朋友圈） 
 
 ![](wechat.png)

@@ -8,14 +8,24 @@ class WaterMarkPerformance {
     private $start_time;
     private $start_memory;
     private $log_file;
+
+    /**
+     * 是否启用性能日志（默认关闭，避免长期占用磁盘）
+     */
+    public static function isEnabled(): bool {
+        return (bool) apply_filters('wpwatermark_performance_logging_enabled', false);
+    }
     
     /**
      * Constructor
      */
     public function __construct() {
         $this->log_file = plugin_dir_path(__FILE__) . 'logs/watermark_performance.log';
-        
-        // Ensure log directory exists
+
+        if (!self::isEnabled()) {
+            return;
+        }
+
         $log_dir = dirname($this->log_file);
         if (!file_exists($log_dir)) {
             wp_mkdir_p($log_dir);
@@ -26,6 +36,10 @@ class WaterMarkPerformance {
      * Start monitoring
      */
     public function startMonitoring() {
+        if (!self::isEnabled()) {
+            return;
+        }
+
         $this->start_time = microtime(true);
         $this->start_memory = memory_get_usage();
     }
@@ -37,6 +51,10 @@ class WaterMarkPerformance {
      * @param array $metadata Additional metadata to log
      */
     public function endMonitoring($operation, $metadata = []) {
+        if (!self::isEnabled()) {
+            return;
+        }
+
         $end_time = microtime(true);
         $end_memory = memory_get_usage();
         
@@ -57,6 +75,10 @@ class WaterMarkPerformance {
      * Log performance data
      */
     private function logPerformance($data) {
+        if (!self::isEnabled()) {
+            return;
+        }
+
         $log_entry = json_encode($data) . "\n";
         
         if (file_exists($this->log_file) && filesize($this->log_file) > 5 * 1024 * 1024) { // 5MB limit
@@ -136,7 +158,7 @@ class WaterMarkPerformance {
      * Clean old log entries
      */
     public function cleanOldLogs($days = 30) {
-        if (!file_exists($this->log_file)) {
+        if (!self::isEnabled() || !file_exists($this->log_file)) {
             return;
         }
         
